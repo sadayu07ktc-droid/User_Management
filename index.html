@@ -264,23 +264,44 @@ function hideGate(){ document.getElementById('gate').style.display='none'; }
 async function loadUsers(){
   const url = GAS_URL + '?action=getUsers&userId=' + encodeURIComponent(MY_UID) + '&t=' + Date.now();
   const res = await fetch(url);
-  const data = await res.json();
-  if(data && data.denied){ showGate('ไม่มีสิทธิ์เข้าถึง','หน้านี้สำหรับแอดมินเท่านั้น'); return; }
-  if(!data || !data.ok){ showGate('โหลดข้อมูลไม่สำเร็จ','ลองรีเฟรชอีกครั้ง'); return; }
+  const raw = await res.text();
+  let data;
+  try{ data = JSON.parse(raw); }
+  catch(e){
+    // GAS ตอบกลับไม่ใช่ JSON — มักเพราะ router ยังไม่รู้จัก action=getUsers
+    showGate('ยังต่อ backend ไม่ครบ','GAS ยังไม่ตอบ action "getUsers" (ยังไม่ได้เพิ่ม users.gs หรือยังไม่ได้ต่อ router + Deploy ใหม่)');
+    return;
+  }
+  if(data && data.denied){ showGate('ไม่มีสิทธิ์เข้าถึง','หน้านี้สำหรับแอดมินเท่านั้น (UID ของคุณไม่อยู่ใน DATA_ADMIN)'); return; }
+  if(!data || !data.ok){ showGate('โหลดข้อมูลไม่สำเร็จ',(data && data.error) || 'ลองรีเฟรชอีกครั้ง'); return; }
   USERS = data.users || [];
   hideGate();
   render();
 }
 
 async function bootstrap(){
+  // 1) เปิด LIFF
   try{
     await liff.init({ liffId: LIFF_ID });
-    if(!liff.isLoggedIn()){ liff.login(); return; }
+  }catch(e){
+    showGate('เปิด LIFF ไม่สำเร็จ','LIFF ID หรือ Endpoint URL อาจไม่ตรงกัน — ' + (e && e.message ? e.message : e));
+    return;
+  }
+  // 2) ต้อง login ก่อน
+  if(!liff.isLoggedIn()){ liff.login(); return; }
+  // 3) อ่านโปรไฟล์ → UID
+  try{
     const p = await liff.getProfile();
     MY_UID = p.userId;
+  }catch(e){
+    showGate('อ่านโปรไฟล์ไม่สำเร็จ','ต้องอนุญาต scope "profile" ให้ LIFF นี้');
+    return;
+  }
+  // 4) ดึงรายชื่อจาก GAS (แยก error ออกมาให้ชัด)
+  try{
     await loadUsers();
   }catch(e){
-    showGate('เปิดผ่าน LINE เท่านั้น','หน้านี้ต้องเปิดผ่านลิงก์ LIFF ในแอป LINE');
+    showGate('เชื่อมต่อ backend ไม่ได้','ยิงไป GAS ไม่สำเร็จ — ' + (e && e.message ? e.message : e));
   }
 }
 bootstrap();
