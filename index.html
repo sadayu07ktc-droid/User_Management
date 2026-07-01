@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ผู้ใช้งาน / สิทธิ์ · SSB</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EEF2EE; --surface:#FFFFFF; --surface-2:#F6F8F5;
+    --ink:#15241D; --ink-soft:#5B6B63; --ink-faint:#8A988F;
+    --line:#E1E7E0; --line-strong:#CDD6CD;
+    --pine:#0E7C66; --pine-deep:#0A5C4C; --gold:#B7892A;
+    --green:#157A40; --green-bg:#DCF3E3;
+    --slate:#6B7A70; --slate-bg:#EEF1EE;
+    /* role colors */
+    --r-admin:#4F46E5;  --r-admin-bg:#EEF0FE;
+    --r-driver:#1D4ED8; --r-driver-bg:#E2EBFD;
+    --r-owner:#157A40;  --r-owner-bg:#DCF3E3;
+    --r-ramp:#B7892A;   --r-ramp-bg:#FBEED3;
+    --r-team:#C2620A;   --r-team-bg:#FBEAD2;
+    --shadow:0 1px 2px rgba(21,36,29,.04), 0 8px 24px rgba(21,36,29,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{font-family:'IBM Plex Sans Thai',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased;padding-bottom:60px}
+  .mono{font-family:'IBM Plex Mono',monospace;font-feature-settings:"tnum"}
+
+  header{position:sticky;top:0;z-index:40;background:var(--pine-deep);color:#EAF3EF;border-bottom:3px solid var(--gold)}
+  .bar{max-width:1080px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .backbtn{display:inline-flex;align-items:center;gap:6px;font-family:inherit;font-size:13px;font-weight:600;color:#EAF3EF;background:rgba(255,255,255,.12);border:1px solid rgba(143,201,185,.4);border-radius:10px;padding:8px 13px 8px 11px;cursor:pointer;transition:background .12s;white-space:nowrap}
+  .backbtn:hover{background:rgba(255,255,255,.22)}
+  .backbtn svg{width:16px;height:16px;stroke-width:2.4}
+  .brand .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#8FC9B9;font-weight:600}
+  .brand h1{font-size:20px;font-weight:700}
+  .bar .spacer{flex:1}
+  .live{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:#BFE3D8;font-weight:500;padding:5px 11px;border:1px solid rgba(143,201,185,.35);border-radius:999px}
+  .live .dot{width:8px;height:8px;border-radius:50%;background:#4ADE80}
+
+  main{max-width:1080px;margin:0 auto;padding:20px}
+
+  .toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .search{position:relative;flex:1;min-width:220px}
+  .search input{width:100%;font-family:inherit;font-size:14px;border:1px solid var(--line-strong);background:var(--surface);border-radius:11px;padding:11px 14px 11px 38px;color:var(--ink);outline:none;transition:border .14s}
+  .search input:focus{border-color:var(--pine)}
+  .search svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--ink-faint)}
+  .count{font-size:13px;color:var(--ink-soft);white-space:nowrap}
+
+  .tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px}
+  .tab{font-family:inherit;font-size:13px;font-weight:500;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-soft);padding:7px 14px;border-radius:999px;cursor:pointer;transition:all .12s;display:inline-flex;align-items:center;gap:7px}
+  .tab:hover{border-color:var(--pine);color:var(--pine)}
+  .tab.on{background:var(--pine);border-color:var(--pine);color:#fff}
+  .tab .n{font-family:'IBM Plex Mono',monospace;opacity:.7;font-size:12px}
+  .tab.on .n{opacity:.85}
+
+  .list{display:grid;grid-template-columns:repeat(2,1fr);gap:13px}
+  @media(max-width:680px){.list{grid-template-columns:1fr}}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:15px 16px;display:flex;align-items:flex-start;gap:13px;position:relative;overflow:hidden;transition:opacity .18s}
+  .card.inactive{opacity:.6}
+  .card .edge{position:absolute;left:0;top:0;bottom:0;width:4px}
+  .avatar{width:44px;height:44px;border-radius:12px;flex:none;display:grid;place-items:center;font-weight:700;font-size:16px;color:#fff}
+  .who{flex:1;min-width:0}
+  .who .name{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .who .line{font-size:12px;color:var(--ink-faint);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .who .extra{font-size:12px;color:var(--ink-soft);margin-top:4px}
+  .who .uid{font-size:10.5px;color:var(--ink-faint);margin-top:3px}
+  .rbadge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;margin-top:6px}
+  .rbadge .pip{width:6px;height:6px;border-radius:50%}
+
+  .side{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:none}
+  .status-txt{font-size:11px;font-weight:600}
+  .status-txt.a{color:var(--green)}
+  .status-txt.i{color:var(--slate)}
+  .toggle{width:46px;height:26px;border-radius:999px;background:var(--line-strong);border:none;cursor:pointer;position:relative;transition:background .18s;flex:none;padding:0}
+  .toggle.on{background:var(--green)}
+  .toggle .knob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .18s}
+  .toggle.on .knob{left:23px}
+  .toggle:disabled{opacity:.5;cursor:wait}
+  .toggle .knob.spin{border:2px solid var(--line-strong);border-top-color:var(--pine);animation:spin .7s linear infinite;box-shadow:none}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .empty{grid-column:1/-1;padding:40px 20px;text-align:center;color:var(--ink-faint);font-size:14px}
+
+  /* gate */
+  #gate{position:fixed;inset:0;z-index:200;background:var(--bg);display:grid;place-items:center;text-align:center;padding:30px}
+  #gate .box{max-width:340px}
+  #gate .ring{width:44px;height:44px;border:4px solid var(--line-strong);border-top-color:var(--pine);border-radius:50%;margin:0 auto 18px;animation:spin 1s linear infinite}
+  #gate h2{font-size:18px;font-weight:700;margin-bottom:6px}
+  #gate p{font-size:13.5px;color:var(--ink-soft)}
+  #gate .deny{font-size:38px;margin-bottom:10px}
+
+  /* toast */
+  #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);background:var(--pine-deep);color:#fff;font-size:13px;font-weight:500;padding:11px 18px;border-radius:11px;box-shadow:0 10px 30px rgba(10,40,28,.35);opacity:0;pointer-events:none;transition:.22s;z-index:120;max-width:90vw}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #toast.err{background:#A91F12}
+</style>
+</head>
+<body>
+
+<div id="gate"><div class="box"><div class="ring"></div><h2>กำลังโหลด…</h2><p>ตรวจสอบสิทธิ์แอดมินและดึงรายชื่อผู้ใช้</p></div></div>
+
+<header>
+  <div class="bar">
+    <button class="backbtn" onclick="goBackToDashboard()" title="กลับสู่ SSB Dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      SSB Dashboard
+    </button>
+    <div class="brand">
+      <span class="eyebrow">SSB SMART SUPPLY · USERS &amp; ROLES</span>
+      <h1>ผู้ใช้งาน / สิทธิ์</h1>
+    </div>
+    <div class="spacer"></div>
+    <span class="live"><span class="dot"></span>ข้อมูลจากชีต LINEHook</span>
+  </div>
+</header>
+
+<main>
+  <div class="toolbar">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="search" type="text" placeholder="ค้นหา ชื่อ · เบอร์ · UID">
+    </div>
+    <span class="count" id="count">—</span>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+  <div class="list" id="list"></div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+/* ▼▼▼ แก้ 2 ค่านี้ ▼▼▼ */
+const LIFF_ID = '2010274217-XXXXXXXX';   // ← สร้าง LIFF ใหม่สำหรับหน้านี้ แล้วเอา ID มาใส่ (หรือใช้ตัวที่ host ไว้)
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbw4UvKuRrAQ_3Ldm8U0VJqfjfBQUSYaTEdrxkdXUVN98G68XseCquhDeXfMgU8cVYaY/exec';
+/* ▲▲▲ ▲▲▲ */
+const DASHBOARD_URL = 'https://liff.line.me/2010274217-Ot7vGhri';   // SSB Dashboard (LIFF_ID_ADMIN)
+
+function goBackToDashboard(){
+  if(DASHBOARD_URL){ window.location.href = DASHBOARD_URL; return; }
+  if(window.history.length > 1){ window.history.back(); return; }
+  try{ if(window.liff && liff.isInClient && liff.isInClient()){ liff.closeWindow(); return; } }catch(e){}
+  window.history.back();
+}
+
+/* role config: label + สี + ไอคอนตัวอักษรย่อ */
+const ROLES = {
+  Admin:  { label:'แอดมิน',     c:'--r-admin',  bg:'--r-admin-bg' },
+  Driver: { label:'คนขับ',      c:'--r-driver', bg:'--r-driver-bg' },
+  Owner:  { label:'เจ้าของสวน', c:'--r-owner',  bg:'--r-owner-bg' },
+  Ramp:   { label:'ลานเท',      c:'--r-ramp',   bg:'--r-ramp-bg' },
+  Team:   { label:'ทีมตัด',     c:'--r-team',   bg:'--r-team-bg' },
+};
+const ROLE_ORDER = ['Admin','Driver','Owner','Ramp','Team'];
+
+let USERS = [];
+let MY_UID = '';
+let filterRole = 'all';
+let q = '';
+
+const cv = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const initials = n => (n||'?').trim().charAt(0) || '?';
+const roleOf = u => ROLES[u.role] ? u.role : 'Team';
+const isActive = u => String(u.status||'').toLowerCase() === 'active';
+
+function esc(s){ const d=document.createElement('div'); d.textContent=(s==null?'':s); return d.innerHTML; }
+
+function renderTabs(){
+  const counts = { all: USERS.length };
+  ROLE_ORDER.forEach(r => counts[r] = USERS.filter(u => roleOf(u)===r).length);
+  const defs = [['all','ทั้งหมด',null], ...ROLE_ORDER.map(r=>[r, ROLES[r].label, ROLES[r].c])];
+  document.getElementById('tabs').innerHTML = defs.map(([k,label,col]) => `
+    <button class="tab ${filterRole===k?'on':''}" onclick="setRole('${k}')">
+      ${col?`<span class="pip" style="width:7px;height:7px;border-radius:50%;background:${cv(col)}"></span>`:''}
+      ${label}<span class="n">${counts[k]||0}</span>
+    </button>`).join('');
+}
+
+function matches(u){
+  if(filterRole!=='all' && roleOf(u)!==filterRole) return false;
+  if(!q) return true;
+  const hay = ((u.name||'')+' '+(u.phone||'')+' '+(u.uid||'')+' '+(u.extra||'')).toLowerCase();
+  return hay.includes(q.toLowerCase());
+}
+
+function render(){
+  renderTabs();
+  const list = USERS.filter(matches);
+  document.getElementById('count').textContent = `${list.length} / ${USERS.length} คน`;
+  const el = document.getElementById('list');
+  if(!list.length){ el.innerHTML = `<div class="empty">ไม่พบผู้ใช้ตามเงื่อนไข</div>`; return; }
+  el.innerHTML = list.map(u=>{
+    const r = roleOf(u), rc = ROLES[r];
+    const active = isActive(u);
+    return `<div class="card ${active?'':'inactive'}" data-uid="${esc(u.uid)}">
+      <div class="edge" style="background:${cv(rc.c)}"></div>
+      <div class="avatar" style="background:${cv(rc.c)}">${esc(initials(u.name))}</div>
+      <div class="who">
+        <div class="name">${esc(u.name||'—')}</div>
+        <div class="line mono">${esc(u.phone||'—')}</div>
+        ${u.extra?`<div class="extra">${esc(u.extra)}</div>`:''}
+        <span class="rbadge" style="background:${cv(rc.bg)};color:${cv(rc.c)}"><span class="pip" style="background:${cv(rc.c)}"></span>${rc.label}</span>
+        <div class="uid mono">${esc(u.uid||'')}</div>
+      </div>
+      <div class="side">
+        <span class="status-txt ${active?'a':'i'}" data-role="statustxt">${active?'Active':'Inactive'}</span>
+        <button class="toggle ${active?'on':''}" data-role="toggle" onclick="toggleUser(this,'${esc(u.uid)}')" aria-label="สลับสถานะ">
+          <span class="knob"></span>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setRole(r){ filterRole = r; render(); }
+
+async function toggleUser(btn, uid){
+  const u = USERS.find(x=>x.uid===uid); if(!u) return;
+  const newStatus = isActive(u) ? 'Inactive' : 'Active';
+  if(!confirm(`เปลี่ยนสถานะ "${u.name||uid}" เป็น ${newStatus} ?`)) return;
+
+  const knob = btn.querySelector('.knob');
+  btn.disabled = true; knob.classList.add('spin');
+  try{
+    const res = await fetch(GAS_URL, {
+      method:'POST',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },  // กัน CORS preflight ของ GAS
+      body: JSON.stringify({ action:'setUserStatus', userId:MY_UID, targetUid:uid, status:newStatus })
+    });
+    const data = await res.json();
+    if(data && data.ok){
+      u.status = newStatus;
+      toast(`${u.name||uid} → ${newStatus}`);
+      render();
+    }else{
+      toast((data && data.error) || 'บันทึกไม่สำเร็จ', true);
+    }
+  }catch(e){
+    toast('เชื่อมต่อไม่ได้', true);
+  }finally{
+    btn.disabled = false; knob.classList.remove('spin');
+  }
+}
+
+let toastTimer=null;
+function toast(msg, isErr){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className = 'show' + (isErr?' err':'');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{ t.className=''; }, 2600);
+}
+
+document.getElementById('search').addEventListener('input', e=>{ q=e.target.value; render(); });
+
+/* ── gate / load ── */
+function showGate(title, sub){
+  const g=document.getElementById('gate'); g.style.display='grid';
+  g.querySelector('.box').innerHTML=`<div class="deny">⚠️</div><h2>${title}</h2><p>${sub||''}</p>`;
+}
+function hideGate(){ document.getElementById('gate').style.display='none'; }
+
+async function loadUsers(){
+  const url = GAS_URL + '?action=getUsers&userId=' + encodeURIComponent(MY_UID) + '&t=' + Date.now();
+  const res = await fetch(url);
+  const data = await res.json();
+  if(data && data.denied){ showGate('ไม่มีสิทธิ์เข้าถึง','หน้านี้สำหรับแอดมินเท่านั้น'); return; }
+  if(!data || !data.ok){ showGate('โหลดข้อมูลไม่สำเร็จ','ลองรีเฟรชอีกครั้ง'); return; }
+  USERS = data.users || [];
+  hideGate();
+  render();
+}
+
+async function bootstrap(){
+  try{
+    await liff.init({ liffId: LIFF_ID });
+    if(!liff.isLoggedIn()){ liff.login(); return; }
+    const p = await liff.getProfile();
+    MY_UID = p.userId;
+    await loadUsers();
+  }catch(e){
+    showGate('เปิดผ่าน LINE เท่านั้น','หน้านี้ต้องเปิดผ่านลิงก์ LIFF ในแอป LINE');
+  }
+}
+bootstrap();
+</script>
+</body>
+</html>
