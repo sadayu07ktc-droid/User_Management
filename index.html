@@ -67,6 +67,8 @@
   .who .extra{font-size:12px;color:var(--ink-soft);margin-top:4px}
   .who .uid{font-size:10.5px;color:var(--ink-faint);margin-top:3px}
   .rbadge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;margin-top:6px}
+  .golink{display:inline-block;margin-top:6px;margin-left:6px;font-size:11px;font-weight:600;color:var(--pine);background:var(--surface-2);border:1px solid var(--line-strong);padding:3px 9px;border-radius:999px;text-decoration:none}
+  .golink:hover{border-color:var(--pine);background:#fff}
   .rbadge .pip{width:6px;height:6px;border-radius:50%}
 
   .side{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:none}
@@ -202,6 +204,7 @@ function render(){
         <div class="line mono">${esc(u.phone||'—')}</div>
         ${u.extra?`<div class="extra">${esc(u.extra)}</div>`:''}
         <span class="rbadge" style="background:${cv(rc.bg)};color:${cv(rc.c)}"><span class="pip" style="background:${cv(rc.c)}"></span>${rc.label}</span>
+        ${r==='Owner'?`<a class="golink" href="https://sadayu07ktc-droid.github.io/SSB-SMART-SUPPLY-DASHBOARD/garden.html?uid=${encodeURIComponent(u.uid)}">🌳 ดูข้อมูลสวน ›</a>`:''}
         <div class="uid mono">${esc(u.uid||'')}</div>
       </div>
       <div class="side">
