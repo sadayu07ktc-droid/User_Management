@@ -205,6 +205,7 @@ function render(){
         ${u.extra?`<div class="extra">${esc(u.extra)}</div>`:''}
         <span class="rbadge" style="background:${cv(rc.bg)};color:${cv(rc.c)}"><span class="pip" style="background:${cv(rc.c)}"></span>${rc.label}</span>
         ${r==='Owner'?`<a class="golink" href="https://sadayu07ktc-droid.github.io/SSB-SMART-SUPPLY-DASHBOARD/garden.html?uid=${encodeURIComponent(u.uid)}">🌳 ดูข้อมูลสวน ›</a>`:''}
+        ${r==='Admin'?`<a class="golink" href="https://sadayu07ktc-droid.github.io/SSB-SMART-SUPPLY-DASHBOARD/admins.html">🔑 ตั้งค่าสิทธิ์ ›</a>`:''}
         <div class="uid mono">${esc(u.uid||'')}</div>
       </div>
       <div class="side">
