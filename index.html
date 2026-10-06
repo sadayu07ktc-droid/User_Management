@@ -97,6 +97,88 @@
   #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);background:var(--pine-deep);color:#fff;font-size:13px;font-weight:500;padding:11px 18px;border-radius:11px;box-shadow:0 10px 30px rgba(10,40,28,.35);opacity:0;pointer-events:none;transition:.22s;z-index:120;max-width:90vw}
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   #toast.err{background:#A91F12}
+
+  /* ── ปุ่มเครื่องมือ (เพิ่ม / ดาวน์โหลด / นำเข้า) ── */
+  .acts{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{font-family:inherit;font-size:13px;font-weight:600;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);padding:9px 14px;border-radius:11px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:border-color .12s,background .12s}
+  .btn:hover{border-color:var(--pine);color:var(--pine)}
+  .btn:focus-visible,.tab:focus-visible,.toggle:focus-visible{outline:2px solid var(--pine);outline-offset:2px}
+  .btn.pri{background:var(--pine);border-color:var(--pine);color:#fff}
+  .btn.pri:hover{background:var(--pine-deep);color:#fff}
+  .btn.dan{background:#A91F12;border-color:#A91F12;color:#fff}
+  .btn.ghost{background:transparent}
+  .btn:disabled{opacity:.55;cursor:wait}
+  .btn .sp{width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
+  .dd{position:relative}
+  .dd-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:60;background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;box-shadow:0 14px 34px rgba(21,36,29,.16);padding:6px;min-width:250px}
+  .dd-menu[hidden]{display:none}
+  .dd-menu button{display:block;width:100%;text-align:left;font-family:inherit;font-size:13px;border:0;background:transparent;color:var(--ink);padding:9px 11px;border-radius:8px;cursor:pointer}
+  .dd-menu button:hover,.dd-menu button:focus-visible{background:var(--surface-2);outline:none}
+  .dd-menu small{display:block;color:var(--ink-faint);font-size:11.5px}
+
+  /* การ์ดรอผูก LINE */
+  .card.pre{border-style:dashed;border-color:var(--line-strong);background:var(--surface-2);box-shadow:none}
+  .card.pre .avatar{background:var(--surface)!important;color:var(--ink-faint);border:1.5px dashed var(--line-strong)}
+  .waitpill{font-size:11px;font-weight:600;color:var(--gold);background:#FBEED3;padding:3px 9px;border-radius:999px;white-space:nowrap}
+  .mini{font-family:inherit;font-size:12px;font-weight:600;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-soft);padding:5px 10px;border-radius:8px;cursor:pointer}
+  .mini:hover{border-color:#A91F12;color:#A91F12}
+  .code{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--ink-soft);background:var(--surface-2);border:1px solid var(--line);padding:1px 7px;border-radius:6px;margin-left:6px;vertical-align:1px}
+
+  /* ── กล่อง popup ── */
+  .ov{position:fixed;inset:0;z-index:150;background:rgba(10,30,22,.45);display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;transition:opacity .16s}
+  .ov.show{opacity:1}
+  .mdl{background:var(--surface);border-radius:18px;box-shadow:0 24px 60px rgba(10,30,22,.35);width:100%;max-width:520px;max-height:calc(100vh - 32px);display:flex;flex-direction:column;transform:translateY(8px) scale(.98);transition:transform .16s}
+  .ov.show .mdl{transform:none}
+  .mdl.wide{max-width:680px}
+  .mdl-hd{display:flex;align-items:center;gap:11px;padding:18px 20px 10px}
+  .mdl-ic{width:38px;height:38px;border-radius:11px;background:var(--green-bg);display:grid;place-items:center;font-size:19px;flex:none}
+  .mdl-ic.dan{background:#FBE3DF}
+  .mdl-hd h3{font-size:16.5px;font-weight:700;line-height:1.3}
+  .mdl-hd p{font-size:12.5px;color:var(--ink-soft)}
+  .mdl-bd{padding:6px 20px 14px;overflow:auto;font-size:13.5px}
+  .mdl-ft{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px 18px;border-top:1px solid var(--line);flex-wrap:wrap}
+  .msg{white-space:pre-line;color:var(--ink-soft)}
+
+  /* ฟอร์ม */
+  .fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .fg .full{grid-column:1/-1}
+  @media(max-width:520px){.fg{grid-template-columns:1fr}}
+  .fd label{display:block;font-size:12.5px;font-weight:600;margin-bottom:5px}
+  .fd label .req{color:#A91F12;font-weight:500;font-size:11px;margin-left:4px}
+  .fd input,.fd select{width:100%;font-family:inherit;font-size:14px;border:1px solid var(--line-strong);background:var(--surface);border-radius:10px;padding:10px 12px;color:var(--ink);outline:none}
+  .fd input:focus,.fd select:focus{border-color:var(--pine)}
+  .fd input::placeholder{color:var(--ink-faint);font-size:13px}
+  .fd input.bad,.fd select.bad{border-color:#A91F12;background:#FFF6F5}
+  .fd .hint{font-size:11.5px;color:var(--ink-faint);margin-top:4px}
+  .modebox{border-radius:11px;padding:10px 12px;font-size:12.5px;line-height:1.55;background:var(--green-bg);color:var(--green)}
+  .modebox.wait{background:#FBEED3;color:#7A5A12}
+
+  /* สรุปนำเข้า */
+  .sumchips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
+  .sc{font-size:12px;font-weight:600;padding:5px 11px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-soft)}
+  .sc b{font-family:'IBM Plex Mono',monospace;margin-left:4px}
+  .sc.add{background:var(--green-bg);border-color:transparent;color:var(--green)}
+  .sc.pre{background:#FBEED3;border-color:transparent;color:#7A5A12}
+  .sc.upd{background:#E2EBFD;border-color:transparent;color:#1D4ED8}
+  .sc.err{background:#FBE3DF;border-color:transparent;color:#A91F12}
+  .sgrp{margin-top:12px}
+  .sgrp h4{font-size:12.5px;font-weight:700;margin-bottom:6px;color:var(--ink)}
+  .srow{border:1px solid var(--line);border-radius:10px;padding:8px 11px;margin-bottom:6px;font-size:12.5px}
+  .srow .t{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+  .srow .ln{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-faint)}
+  .srow .nm{font-weight:600}
+  .srow .sub{color:var(--ink-soft);font-size:12px;margin-top:2px}
+  .chg{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin-top:5px;font-size:12px}
+  .chg .k{color:var(--ink-faint)}
+  .chg s{color:#A91F12;text-decoration-thickness:1px}
+  .chg ins{color:var(--green);text-decoration:none;font-weight:600}
+  .srow.err{border-color:#F2C6BF;background:#FFF8F7}
+  .srow .warn{color:#7A5A12;font-size:12px;margin-top:3px}
+  .srow .ok{color:var(--green);font-weight:600}
+  .srow .no{color:#A91F12;font-weight:600}
+  .prog{height:6px;border-radius:99px;background:var(--line);overflow:hidden;margin:6px 0 4px}
+  .prog i{display:block;height:100%;background:var(--pine);width:0;transition:width .25s}
+  @media (prefers-reduced-motion:reduce){.ov,.mdl,.prog i{transition:none}}
 </style>
 </head>
 <body>
@@ -114,7 +196,7 @@
       <h1>ผู้ใช้งาน / สิทธิ์</h1>
     </div>
     <div class="spacer"></div>
-    <span class="live"><span class="dot"></span>ข้อมูลจากชีต LINEHook</span>
+    <span class="live"><span class="dot"></span>ข้อมูลสด</span>
   </div>
 </header>
 
@@ -125,6 +207,18 @@
       <input id="search" type="text" placeholder="ค้นหา ชื่อ · เบอร์ · UID">
     </div>
     <span class="count" id="count">—</span>
+    <div class="acts">
+      <button class="btn pri" type="button" onclick="openAdd()">➕ เพิ่มผู้ใช้</button>
+      <div class="dd">
+        <button class="btn" type="button" id="dlBtn" aria-haspopup="menu" aria-expanded="false" onclick="toggleDl(event)">⬇️ ดาวน์โหลด</button>
+        <div class="dd-menu" id="dlMenu" role="menu" hidden>
+          <button type="button" role="menuitem" onclick="exportCsv(true)">📋 รายชื่อทั้งหมด<small>แก้ใน Excel แล้วนำเข้ากลับ · เพิ่มคนใหม่ต่อท้ายได้</small></button>
+          <button type="button" role="menuitem" onclick="exportCsv(false)">📄 เทมเพลตเปล่า<small>หัวคอลัมน์อย่างเดียว ไว้กรอกคนใหม่</small></button>
+        </div>
+      </div>
+      <label class="btn" for="impFile" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">⬆️ นำเข้าไฟล์</label>
+      <input type="file" id="impFile" accept=".csv,.xlsx,text/csv" hidden onchange="importFile(this)">
+    </div>
   </div>
 
   <div class="tabs" id="tabs"></div>
@@ -158,6 +252,7 @@ const ROLES = {
 const ROLE_ORDER = ['Admin','Driver','Owner','Ramp','Team'];
 
 let USERS = [];
+let PREREGS = [];   // ลงล่วงหน้าด้วยเบอร์ รอผูก LINE (user_preregs)
 let MY_UID = '';
 let filterRole = 'all';
 let q = '';
@@ -170,14 +265,41 @@ const isActive = u => String(u.status||'').toLowerCase() === 'active';
 function esc(s){ const d=document.createElement('div'); d.textContent=(s==null?'':s); return d.innerHTML; }
 
 function renderTabs(){
-  const counts = { all: USERS.length };
+  const counts = { all: USERS.length, pre: PREREGS.length };
   ROLE_ORDER.forEach(r => counts[r] = USERS.filter(u => roleOf(u)===r).length);
   const defs = [['all','ทั้งหมด',null], ...ROLE_ORDER.map(r=>[r, ROLES[r].label, ROLES[r].c])];
+  if(PREREGS.length || filterRole==='pre') defs.push(['pre','⏳ รอผูก LINE',null]);
   document.getElementById('tabs').innerHTML = defs.map(([k,label,col]) => `
     <button class="tab ${filterRole===k?'on':''}" onclick="setRole('${k}')">
       ${col?`<span class="pip" style="width:7px;height:7px;border-radius:50%;background:${cv(col)}"></span>`:''}
       ${label}<span class="n">${counts[k]||0}</span>
     </button>`).join('');
+}
+
+/* การ์ดคนที่แอดมินลงไว้ล่วงหน้า (ยังไม่มี LINE UID) — สมัครใน LINE ด้วยเบอร์นี้ = ผูก + Active อัตโนมัติ */
+function renderPre(){
+  const list = PREREGS.filter(p => !q || ((p.name||'')+' '+(p.phone||'')+' '+(p.plate||'')).toLowerCase().includes(q.toLowerCase()));
+  document.getElementById('count').textContent = `${list.length} รายการรอผูก`;
+  const el = document.getElementById('list');
+  if(!list.length){ el.innerHTML = `<div class="empty">ไม่มีรายชื่อรอผูก LINE</div>`; return; }
+  el.innerHTML = list.map(p=>{
+    const rc = ROLES[p.role] || ROLES.Team;
+    const car = [p.plate?'🚚 '+p.plate:'', p.vehicleType||''].filter(Boolean).join(' · ');
+    return `<div class="card pre">
+      <div class="avatar">${esc(initials(p.name))}</div>
+      <div class="who">
+        <div class="name">${esc(p.name||'—')}</div>
+        <div class="line mono">${esc(p.phone||'—')}</div>
+        ${car?`<div class="extra">${esc(car)}</div>`:''}
+        <span class="rbadge" style="background:${cv(rc.bg)};color:${cv(rc.c)}"><span class="pip" style="background:${cv(rc.c)}"></span>${rc.label}</span>
+        <div class="uid">สมัคร LINE ด้วยเบอร์นี้ → ผูกและใช้งานได้ทันที${p.role==='Admin'?' (แอดมิน: ต้องกดอนุมัติอีกครั้ง)':''}</div>
+      </div>
+      <div class="side">
+        <span class="waitpill">รอผูก LINE</span>
+        <button class="mini" type="button" onclick="cancelPre(${Number(p.id)})">ยกเลิก</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function matches(u){
@@ -189,6 +311,7 @@ function matches(u){
 
 function render(){
   renderTabs();
+  if(filterRole==='pre') return renderPre();
   const list = USERS.filter(matches);
   document.getElementById('count').textContent = `${list.length} / ${USERS.length} คน`;
   const el = document.getElementById('list');
@@ -200,7 +323,7 @@ function render(){
       <div class="edge" style="background:${cv(rc.c)}"></div>
       <div class="avatar" style="background:${cv(rc.c)}">${esc(initials(u.name))}</div>
       <div class="who">
-        <div class="name">${esc(u.name||'—')}</div>
+        <div class="name">${esc(u.name||'—')}${u.code?`<span class="code">${esc(u.code)}</span>`:''}</div>
         <div class="line mono">${esc(u.phone||'—')}</div>
         ${u.extra?`<div class="extra">${esc(u.extra)}</div>`:''}
         <span class="rbadge" style="background:${cv(rc.bg)};color:${cv(rc.c)}"><span class="pip" style="background:${cv(rc.c)}"></span>${rc.label}</span>
@@ -223,7 +346,10 @@ function setRole(r){ filterRole = r; render(); }
 async function toggleUser(btn, uid){
   const u = USERS.find(x=>x.uid===uid); if(!u) return;
   const newStatus = isActive(u) ? 'Inactive' : 'Active';
-  if(!confirm(`เปลี่ยนสถานะ "${u.name||uid}" เป็น ${newStatus} ?`)) return;
+  const on = newStatus==='Active';
+  if(!(await ask({ icon:on?'✅':'⏸️', title:on?'เปิดใช้งานผู้ใช้นี้?':'ปิดการใช้งานผู้ใช้นี้?',
+      msg:`${u.name||uid}\n${on?'เปิดแล้วผู้ใช้จะได้เมนูตามบทบาท และได้รับแจ้งใน LINE':'ปิดแล้วผู้ใช้จะเข้าเมนูงานไม่ได้ จนกว่าจะเปิดอีกครั้ง'}`,
+      okText:on?'เปิดใช้งาน':'ปิดการใช้งาน', danger:!on }))) return;
 
   const knob = btn.querySelector('.knob');
   btn.disabled = true; knob.classList.add('spin');
@@ -256,6 +382,304 @@ function toast(msg, isErr){
   toastTimer=setTimeout(()=>{ t.className=''; }, 2600);
 }
 
+/* ═════════ popup กลาง (แทน confirm/alert ของเบราว์เซอร์) ═════════
+ * modal({icon,title,sub,html,wide,actions:[{text,val,cls}],danger}) → Promise(val) · แตะพื้นหลัง/Esc = null */
+function modal(o){
+  return new Promise(res=>{
+    const ov=document.createElement('div'); ov.className='ov';
+    ov.innerHTML=`<div class="mdl ${o.wide?'wide':''}" role="dialog" aria-modal="true" aria-labelledby="mdlT">
+      <div class="mdl-hd">${o.icon?`<div class="mdl-ic ${o.danger?'dan':''}" aria-hidden="true">${o.icon}</div>`:''}<div><h3 id="mdlT">${esc(o.title||'')}</h3>${o.sub?`<p>${esc(o.sub)}</p>`:''}</div></div>
+      <div class="mdl-bd">${o.html||''}</div>
+      <div class="mdl-ft"></div></div>`;
+    const ft=ov.querySelector('.mdl-ft'); let done=false;
+    const close=v=>{ if(done)return; done=true; document.removeEventListener('keydown',onKey); ov.classList.remove('show'); setTimeout(()=>ov.remove(),160); res(v); };
+    const onKey=e=>{ if(e.key==='Escape' && !ov.dataset.lock) close(null); };
+    (o.actions||[{text:'ปิด',val:true,cls:'pri'}]).forEach(a=>{
+      const b=document.createElement('button'); b.type='button'; b.className='btn '+(a.cls||''); b.textContent=a.text;
+      b.onclick=async()=>{ if(a.before){ const ok=await a.before(ov,b); if(ok===false) return; } close(a.val); };
+      ft.appendChild(b);
+    });
+    ov.addEventListener('click',e=>{ if(e.target===ov && !ov.dataset.lock) close(null); });
+    document.addEventListener('keydown',onKey);
+    document.body.appendChild(ov);
+    setTimeout(()=>{ ov.classList.add('show'); const f=ov.querySelector('[autofocus]')||ft.lastChild; if(f) f.focus(); },10);   // setTimeout (ไม่ใช้ rAF — แท็บพื้นหลังไม่ยิง)
+    if(o.onOpen) o.onOpen(ov, close);
+  });
+}
+async function ask(o){
+  const v = await modal({ icon:o.icon||'❓', title:o.title, danger:o.danger, html:`<div class="msg">${esc(o.msg||'')}</div>`,
+    actions:[{text:o.cancelText||'ยกเลิก',val:false,cls:'ghost'},{text:o.okText||'ยืนยัน',val:true,cls:o.danger?'dan':'pri'}] });
+  return v===true;
+}
+
+/* ═════════ เรียก backend ═════════
+ * GAS บางทีตอบหน้า HTML แทน JSON (มักหลัง deploy) → อ่านอย่างเดียว = ลองซ้ำได้ · เขียน = ห้ามยิงซ้ำ ให้โหลดข้อมูลมาตรวจ */
+async function postJson(body, canRetry){
+  for(let n=1;;n++){
+    try{
+      const r = await fetch(GAS_URL,{ method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(Object.assign({userId:MY_UID},body)) });
+      const t = await r.text();
+      try{ return JSON.parse(t); }catch(e){ if(!canRetry || n>=3) return { ok:false, unsure:!canRetry, error:'เซิร์ฟเวอร์ตอบกลับผิดรูปแบบ' }; }
+    }catch(e){ if(!canRetry || n>=3) return { ok:false, unsure:!canRetry, error:'เชื่อมต่อไม่ได้' }; }
+    await new Promise(r=>setTimeout(r,900*n));
+  }
+}
+async function reloadQuiet(){
+  for(let n=1;n<=3;n++){
+    try{
+      const r = await fetch(GAS_URL+'?action=getUsers&userId='+encodeURIComponent(MY_UID)+'&t='+Date.now());
+      const d = JSON.parse(await r.text());
+      if(d && d.ok){ USERS=d.users||[]; PREREGS=d.preregs||[]; if(filterRole==='pre'&&!PREREGS.length) filterRole='all'; render(); return true; }
+    }catch(e){}
+    await new Promise(r=>setTimeout(r,900*n));
+  }
+  toast('โหลดรายชื่อใหม่ไม่ได้ — กดรีเฟรชหน้า', true); return false;
+}
+function busy(btn, on, label){
+  if(!btn) return;
+  if(on){ btn.dataset.t=btn.textContent; btn.disabled=true; btn.innerHTML='<span class="sp"></span>'+esc(label||btn.dataset.t); }
+  else { btn.disabled=false; btn.textContent=btn.dataset.t||btn.textContent; }
+}
+
+/* ═════════ ➕ เพิ่มผู้ใช้ทีละคน ═════════ */
+const VEH = ['4 ล้อ','6 ล้อ','10 ล้อ','พ่วง(Trailer)','รถ CPO'];
+const digits = s => String(s||'').replace(/\D/g,'');
+function openAdd(){
+  const roleOpts = ROLE_ORDER.map(r=>`<option value="${r}" ${r==='Driver'?'selected':''}>${ROLES[r].label}</option>`).join('');
+  const html = `<div class="fg">
+    <div class="fd"><label for="aName">ชื่อ<span class="req">* จำเป็น</span></label><input id="aName" autocomplete="off" placeholder="เช่น สมชาย ใจดี" autofocus></div>
+    <div class="fd"><label for="aPhone">เบอร์โทร<span class="req">* จำเป็น</span></label><input id="aPhone" inputmode="tel" autocomplete="off" placeholder="0812345678"></div>
+    <div class="fd"><label for="aRole">บทบาท<span class="req">* จำเป็น</span></label><select id="aRole">${roleOpts}</select></div>
+    <div class="fd veh"><label for="aVeh">ประเภทรถ</label><select id="aVeh"><option value="">— เลือก —</option>${VEH.map(v=>`<option>${v}</option>`).join('')}</select></div>
+    <div class="fd veh full"><label for="aPlate">ทะเบียนรถ</label><input id="aPlate" autocomplete="off" placeholder="85-4587"><div class="hint" id="aPlateHint"></div></div>
+    <div class="fd full"><label for="aUid">LINE UID <span style="font-weight:400;color:var(--ink-faint)">(ถ้ามี)</span></label><input id="aUid" class="mono" autocomplete="off" spellcheck="false" placeholder="U + 32 ตัว — เว้นว่างได้"></div>
+    <div class="full"><div class="modebox" id="aMode"></div></div>
+  </div>`;
+  return modal({ icon:'➕', title:'เพิ่มผู้ใช้', sub:'เปิดใช้งานทันที ไม่ต้องรออนุมัติ', html, actions:[
+    {text:'ยกเลิก', val:null, cls:'ghost'},
+    {text:'บันทึก', val:true, cls:'pri', before:saveAdd}
+  ], onOpen:ov=>{
+    const $=id=>ov.querySelector('#'+id);
+    const sync=()=>{
+      const drv=$('aRole').value==='Driver';
+      ov.querySelectorAll('.veh').forEach(x=>x.hidden=!drv);
+      const tr=/พ่วง|CPO/.test($('aVeh').value);
+      $('aPlate').placeholder = tr?'หัว,ลูก เช่น 85-4589,85-4586':'85-4587';
+      $('aPlateHint').textContent = tr?'พ่วง/CPO ใส่ทะเบียน หัว และ ลูก คั่นด้วย ,':'';
+      const hasUid=$('aUid').value.trim()!=='';
+      const m=$('aMode'); m.className='modebox'+(hasUid?'':' wait');
+      m.innerHTML = hasUid
+        ? '✅ <b>มี LINE UID</b> → ลงทะเบียน + เปิดใช้งานทันที · ผู้ใช้ได้เมนูตามบทบาทและข้อความแจ้งใน LINE'
+        : '⏳ <b>ไม่มี UID</b> → ลงรายชื่อล่วงหน้า · พอเขาสมัครใน LINE ด้วย <b>เบอร์นี้</b> ระบบจะผูกและเปิดใช้งานให้อัตโนมัติ'
+          + ($('aRole').value==='Admin'?' (บทบาทแอดมิน: ผูกแล้วต้องกดอนุมัติอีกครั้ง เพื่อความปลอดภัย)':'');
+    };
+    ['aRole','aVeh','aUid'].forEach(id=>$(id).addEventListener('input',sync));
+    $('aRole').addEventListener('change',sync); $('aVeh').addEventListener('change',sync);
+    sync();
+  }});
+}
+async function saveAdd(ov, btn){
+  const $=id=>ov.querySelector('#'+id);
+  ov.querySelectorAll('.bad').forEach(x=>x.classList.remove('bad'));
+  const u={ name:$('aName').value.trim(), phone:digits($('aPhone').value), role:$('aRole').value, uid:$('aUid').value.trim(),
+            vehicleType:$('aRole').value==='Driver'?$('aVeh').value:'', plate:$('aRole').value==='Driver'?$('aPlate').value.trim():'' };
+  const bad=(id,msg)=>{ $(id).classList.add('bad'); $(id).focus(); toast(msg,true); return false; };
+  if(!u.name) return bad('aName','กรุณากรอกชื่อ');
+  if(!/^0\d{8,9}$/.test(u.phone)) return bad('aPhone','เบอร์โทรต้อง 9–10 หลัก ขึ้นต้น 0');
+  if(u.uid && !/^U[0-9a-f]{32}$/i.test(u.uid)) return bad('aUid','LINE UID ต้องขึ้นต้น U ตามด้วย 32 ตัว');
+  if(/พ่วง|CPO/.test(u.vehicleType) && u.plate && u.plate.split(/[,/]/).filter(s=>s.trim()).length<2) return bad('aPlate','พ่วง/CPO ใส่ทะเบียน หัว,ลูก');
+  ov.dataset.lock='1'; busy(btn,true,'กำลังบันทึก');
+  const r = await postJson({ action:'addUser', user:u }, false);
+  busy(btn,false); delete ov.dataset.lock;
+  if(r && r.ok){
+    toast(r.mode==='prereg' ? `⏳ ลงรายชื่อ ${u.name} แล้ว — รอผูก LINE` : `✅ เพิ่ม ${u.name}${r.code?' ('+r.code+')':''} — ใช้งานได้ทันที`);
+    if(r.mode==='prereg') filterRole='pre';
+    reloadQuiet(); return true;
+  }
+  if(r && r.unsure){ toast('ไม่แน่ใจว่าบันทึกสำเร็จ — กำลังโหลดรายชื่อมาตรวจ', true); reloadQuiet(); return true; }
+  toast((r && r.error) || 'บันทึกไม่สำเร็จ', true); return false;
+}
+
+async function cancelPre(id){
+  const p = PREREGS.find(x=>Number(x.id)===id); if(!p) return;
+  if(!(await ask({ icon:'🗑️', title:'ยกเลิกรายชื่อรอผูก?', msg:`${p.name} · ${p.phone}\nยกเลิกแล้ว ถ้าเขาสมัครใน LINE จะต้องรอแอดมินอนุมัติตามปกติ`, okText:'ยกเลิกรายชื่อ', cancelText:'ไม่ใช่', danger:true }))) return;
+  const r = await postJson({ action:'cancelPrereg', id }, false);
+  if(r && r.ok){ toast('ยกเลิกรายชื่อ '+p.name+' แล้ว'); reloadQuiet(); }
+  else toast((r && r.error) || 'ยกเลิกไม่สำเร็จ', true);
+}
+
+/* ═════════ ⬇️ ดาวน์โหลดรายชื่อ / เทมเพลต (CSV เปิดใน Excel ได้ ภาษาไทยไม่เพี้ยน) ═════════ */
+const COLS=['LINE UID','ชื่อ','เบอร์โทร','บทบาท','ทะเบียนรถ','ประเภทรถ','รหัส (อ้างอิง)','สถานะ (อ้างอิง)'];
+function toggleDl(e){ e.stopPropagation(); const m=document.getElementById('dlMenu'); m.hidden=!m.hidden; document.getElementById('dlBtn').setAttribute('aria-expanded',String(!m.hidden)); }
+document.addEventListener('click',e=>{ const m=document.getElementById('dlMenu'); if(m && !m.hidden && !e.target.closest('.dd')){ m.hidden=true; document.getElementById('dlBtn').setAttribute('aria-expanded','false'); } });
+function csvCell(v){ v=v==null?'':String(v); return /[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
+function exportCsv(withData){
+  document.getElementById('dlMenu').hidden=true;
+  // เบอร์ใส่ ="0812..." กัน Excel ตัดเลขศูนย์หน้า
+  const ph = p => { const d=digits(p); return d?'="'+d+'"':''; };
+  const lines=[COLS.map(csvCell).join(',')];
+  if(withData){
+    ROLE_ORDER.forEach(r=>USERS.filter(u=>roleOf(u)===r).forEach(u=>
+      lines.push([u.uid,u.name,ph(u.phone),ROLES[r].label,u.plate||'',u.vehicleType||'',u.code||'',isActive(u)?'Active':'Inactive'].map(csvCell).join(','))));
+    PREREGS.forEach(p=>lines.push(['',p.name,ph(p.phone),(ROLES[p.role]||{}).label||p.role,p.plate||'',p.vehicleType||'','','รอผูก LINE'].map(csvCell).join(',')));
+  }
+  const b=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b);
+  a.download=(withData?'ผู้ใช้งาน-':'เทมเพลตผู้ใช้-')+new Date().toISOString().slice(0,10)+'.csv'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  toast(withData?`⬇️ ดาวน์โหลด ${USERS.length} คน${PREREGS.length?' + รอผูก '+PREREGS.length:''}`:'⬇️ ดาวน์โหลดเทมเพลตแล้ว');
+}
+
+/* ═════════ ⬆️ นำเข้าไฟล์ (.csv / .xlsx) ═════════
+ * UID ตรงคนเดิม (หรือไม่มี UID แต่เบอร์ตรง) = แก้ไข · มี UID ใหม่ = เพิ่ม+Active · ไม่มี UID = ลงล่วงหน้า
+ * ไม่ลบใครที่หายจากไฟล์ · ไม่เปลี่ยนบทบาทคนเดิม · นำเข้าไฟล์เดิมซ้ำได้ ไม่เกิดคนซ้ำ */
+function decodeText(buf){
+  const u=new Uint8Array(buf);
+  if(u[0]===0xEF&&u[1]===0xBB&&u[2]===0xBF) return new TextDecoder('utf-8').decode(u.subarray(3));
+  try{ return new TextDecoder('utf-8',{fatal:true}).decode(u); }catch(e){ return new TextDecoder('windows-874').decode(u); }
+}
+function parseCsv(s){
+  const first=s.split(/\r?\n/)[0]||'', d=(first.split('\t').length>first.split(',').length)?'\t':((first.split(';').length>first.split(',').length)?';':',');
+  const rows=[]; let row=[],cell='',qq=false;
+  for(let i=0;i<s.length;i++){ const ch=s[i];
+    if(qq){ if(ch==='"'){ if(s[i+1]==='"'){cell+='"';i++;} else qq=false; } else cell+=ch; continue; }
+    if(ch==='"') qq=true; else if(ch===d){ row.push(cell); cell=''; }
+    else if(ch==='\n'||ch==='\r'){ if(ch==='\r'&&s[i+1]==='\n') i++; row.push(cell); rows.push(row); row=[]; cell=''; }
+    else cell+=ch; }
+  if(cell!==''||row.length){ row.push(cell); rows.push(row); }
+  return rows;
+}
+async function readXlsx(buf){   // ชีตแรก · แกะ zip + XML เอง ไม่ใช้ไลบรารี
+  const b=new Uint8Array(buf), dv=new DataView(buf); let e=b.length-22;
+  while(e>=0&&dv.getUint32(e,true)!==0x06054b50) e--;
+  if(e<0) throw new Error('ไม่ใช่ไฟล์ .xlsx');
+  const files={}; let p=dv.getUint32(e+16,true);
+  for(let i=0,n=dv.getUint16(e+10,true);i<n;i++){
+    const m=dv.getUint16(p+10,true),cs=dv.getUint32(p+20,true),nl=dv.getUint16(p+28,true),el=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),lo=dv.getUint32(p+42,true);
+    const name=new TextDecoder().decode(b.subarray(p+46,p+46+nl)), st=lo+30+dv.getUint16(lo+26,true)+dv.getUint16(lo+28,true);
+    files[name]={m,data:b.subarray(st,st+cs)}; p+=46+nl+el+cl;
+  }
+  async function get(name){ const f=files[name]; if(!f) return null; let d=f.data;
+    if(f.m===8){ if(typeof DecompressionStream==='undefined') throw new Error('เบราว์เซอร์นี้อ่าน .xlsx ไม่ได้ ให้เซฟเป็น CSV แทน');
+      d=new Uint8Array(await new Response(new Blob([d]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer()); }
+    return new DOMParser().parseFromString(new TextDecoder().decode(d),'application/xml'); }
+  const ss=[], ssx=await get('xl/sharedStrings.xml');
+  if(ssx) [...ssx.getElementsByTagName('si')].forEach(si=>ss.push([...si.getElementsByTagName('t')].map(t=>t.textContent).join('')));
+  const wb=await get('xl/workbook.xml'), rels=await get('xl/_rels/workbook.xml.rels');
+  const sh0=wb.getElementsByTagName('sheet')[0];
+  const rid=sh0.getAttribute('r:id')||sh0.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships','id');
+  let tgt=[...rels.getElementsByTagName('Relationship')].find(r=>r.getAttribute('Id')===rid).getAttribute('Target');
+  tgt=tgt.replace(/^\//,'').replace(/^(xl\/)?/,'xl/');
+  const sh=await get(tgt), out=[];
+  const colIdx=s=>[...s].reduce((a,c)=>a*26+c.charCodeAt(0)-64,0)-1;
+  [...sh.getElementsByTagName('row')].forEach(r=>{
+    const arr=[];
+    [...r.getElementsByTagName('c')].forEach(c=>{
+      const t=c.getAttribute('t'), vv=c.getElementsByTagName('v')[0];
+      arr[colIdx((c.getAttribute('r')||'A').replace(/\d+/g,''))] = t==='s'?(vv?ss[+vv.textContent]||'':''):t==='inlineStr'?[...c.getElementsByTagName('t')].map(x=>x.textContent).join(''):(vv?vv.textContent:'');
+    });
+    out[(+r.getAttribute('r')||out.length+1)-1]=Array.from(arr,x=>x==null?'':x);
+  });
+  return Array.from(out,x=>x||[]);
+}
+/* ตาราง → แถว object (หัวคอลัมน์จับด้วยคำ ไม่สนลำดับ) */
+function rowsFromTable(tab){
+  const hi = tab.findIndex(r=>r.some(c=>/ชื่อ/.test(c)) && r.some(c=>/เบอร์|โทร|phone/i.test(c)));
+  if(hi<0) throw new Error('ไม่พบหัวคอลัมน์ "ชื่อ" และ "เบอร์โทร" — ใช้ไฟล์จากปุ่มดาวน์โหลด');
+  const H = tab[hi].map(h=>String(h||'').trim());
+  const col = re => H.findIndex(h=>re.test(h));
+  const C = { uid:col(/uid/i), name:H.findIndex(h=>/^ชื่อ/.test(h)), phone:col(/เบอร์|โทร|phone/i), role:col(/บทบาท|role/i), plate:col(/ทะเบียน/), veh:col(/ประเภทรถ/) };
+  const g=(r,i)=> i<0?'':String(r[i]==null?'':r[i]).replace(/^="?|"$/g,'').trim();   // ="0812..." (กัน Excel ตัดศูนย์)
+  const out=[];
+  for(let i=hi+1;i<tab.length;i++){
+    const r=tab[i]||[];
+    const o={ __line:i+1, 'LINE UID':g(r,C.uid), 'ชื่อ':g(r,C.name), 'เบอร์โทร':g(r,C.phone), 'บทบาท':g(r,C.role), 'ทะเบียนรถ':g(r,C.plate), 'ประเภทรถ':g(r,C.veh) };
+    if(Object.keys(o).some(k=>k!=='__line' && o[k])) out.push(o);
+  }
+  return out;
+}
+let IMP=null;
+async function importFile(inp){
+  const f=inp.files&&inp.files[0]; inp.value=''; if(!f) return;
+  let rows;
+  try{ const buf=await f.arrayBuffer(); rows=rowsFromTable(/\.xlsx$/i.test(f.name)?await readXlsx(buf):parseCsv(decodeText(buf))); }
+  catch(e){ toast('อ่านไฟล์ไม่ได้: '+(e.message||e),true); return; }
+  if(!rows.length){ toast('ไฟล์ไม่มีข้อมูลใต้หัวคอลัมน์',true); return; }
+  if(rows.length>500){ toast('นำเข้าได้ครั้งละไม่เกิน 500 แถว',true); return; }
+  toast('กำลังตรวจไฟล์ '+rows.length+' แถว…');
+  const r = await postJson({ action:'importUsers', rows, apply:false }, true);   // ตรวจอย่างเดียว ไม่เขียน
+  if(!r || !r.ok){ toast((r&&r.error)||'ตรวจไฟล์ไม่สำเร็จ',true); return; }
+  IMP={ file:f.name, rows, plan:r.plan };
+  showPlan();
+}
+const ACT = {
+  add:{ t:'➕ เพิ่มใหม่ (เปิดใช้งานทันที)', cls:'add' },
+  prereg:{ t:'⏳ ลงล่วงหน้า (รอผูก LINE ด้วยเบอร์)', cls:'pre' },
+  update:{ t:'✏️ แก้ไขคนเดิม', cls:'upd' },
+  'prereg-update':{ t:'✏️ แก้ไขรายชื่อรอผูก', cls:'upd' },
+  error:{ t:'⚠️ ข้าม — ข้อมูลไม่ถูกต้อง', cls:'err' },
+  same:{ t:'ไม่เปลี่ยน', cls:'' }
+};
+function planHtml(plan, result){
+  const by={}; plan.forEach(p=>{ if(p.action==='skip') return; (by[p.action]=by[p.action]||[]).push(p); });
+  const chips = ['add','prereg','update','prereg-update','same','error'].filter(k=>by[k]).map(k=>`<span class="sc ${ACT[k].cls}">${ACT[k].t.replace(/\s*\(.*\)/,'')}<b>${by[k].length}</b></span>`).join('');
+  const roleTh = r => (ROLES[r]||{}).label || r || '—';
+  const one = p => {
+    const st = result ? (p.done?'<span class="ok">✓ สำเร็จ</span>':(p.action==='same'?'':'<span class="no">✗ ไม่สำเร็จ</span>')) : '';
+    const chg = (p.changes||[]).length ? `<div class="chg">${p.changes.map(c=>`<span class="k">${esc(c.label)}</span><span>${c.old?`<s>${esc(c.old)}</s> → `:''}<ins>${esc(c.new)}</ins></span>`).join('')}</div>` : '';
+    const sub = [roleTh(p.role), p.phone, p.code].filter(Boolean).join(' · ');
+    return `<div class="srow ${p.action==='error'?'err':''}"><div class="t"><span class="ln">แถว ${p.line}</span><span class="nm">${esc(p.curName&&p.curName!==p.name?p.curName:(p.name||'—'))}</span>${st}</div>
+      <div class="sub">${esc(sub)}</div>${chg}
+      ${p.msg && p.action!=='prereg' ? `<div class="sub">${esc(p.msg)}</div>`:''}${p.warn?`<div class="warn">⚠️ ${esc(p.warn)}</div>`:''}</div>`;
+  };
+  const grp = k => by[k] ? `<div class="sgrp"><h4>${ACT[k].t} · ${by[k].length}</h4>${by[k].map(one).join('')}</div>` : '';
+  const warnSame = (by.same||[]).filter(p=>p.warn);
+  return `<div class="sumchips">${chips}</div>`
+    + ['add','prereg','update','prereg-update','error'].map(grp).join('')
+    + (warnSame.length ? `<div class="sgrp"><h4>ไม่เปลี่ยน แต่มีข้อสังเกต · ${warnSame.length}</h4>${warnSame.map(one).join('')}</div>` : '');
+}
+async function showPlan(){
+  const todo = IMP.plan.filter(p=>['add','prereg','update','prereg-update'].includes(p.action));
+  const nSame = IMP.plan.filter(p=>p.action==='same').length;
+  if(!todo.length){
+    await modal({ icon:'📄', title:'ไม่มีอะไรต้องเปลี่ยน', sub:IMP.file+' · '+IMP.rows.length+' แถว', wide:true,
+      html: (nSame?`<p class="msg" style="margin-bottom:8px">ข้อมูลตรงกับในระบบอยู่แล้ว ${nSame} คน</p>`:'') + planHtml(IMP.plan) });
+    return;
+  }
+  const go = await modal({ icon:'📥', title:'ตรวจก่อนนำเข้า', sub:IMP.file+' · '+IMP.rows.length+' แถว — ยังไม่ได้บันทึก', wide:true,
+    html: planHtml(IMP.plan) + '<div id="impProg" hidden><div class="prog"><i></i></div><div class="sub" id="impProgT" style="font-size:12px;color:var(--ink-soft)"></div></div>',
+    actions:[ {text:'ยกเลิก', val:false, cls:'ghost'}, {text:`นำเข้า ${todo.length} รายการ`, val:true, cls:'pri', before:applyImport} ] });
+  if(go===true) showResult();
+}
+async function applyImport(ov, btn){
+  const todo = IMP.plan.filter(p=>['add','prereg','update','prereg-update'].includes(p.action));
+  const byLine = {}; IMP.rows.forEach(r=>byLine[r.__line]=r);
+  const send = todo.map(p=>byLine[p.line]).filter(Boolean);
+  ov.dataset.lock='1'; ov.querySelectorAll('.mdl-ft .btn').forEach(b=>b.disabled=true); busy(btn,true,'กำลังนำเข้า');
+  const pg=ov.querySelector('#impProg'), bar=pg.querySelector('i'), pt=ov.querySelector('#impProgT'); pg.hidden=false;
+  const res={}; let unsure=0;
+  for(let i=0;i<send.length;i+=8){   // ทีละ 8 แถว (GAS จำกัดเวลา/คำขอ)
+    const chunk=send.slice(i,i+8);
+    pt.textContent=`กำลังบันทึก ${Math.min(i+8,send.length)} / ${send.length}`;
+    const r = await postJson({ action:'importUsers', rows:chunk, apply:true }, false);
+    if(r && r.ok) (r.plan||[]).forEach(p=>res[p.line]=p);
+    else { unsure += chunk.length; chunk.forEach(c=>res[c.__line]={ line:c.__line, action:'error', done:false, msg:(r&&r.unsure)?'ไม่แน่ใจว่าบันทึกหรือยัง — ดูในรายชื่อ':((r&&r.error)||'บันทึกไม่สำเร็จ') }); }
+    bar.style.width = Math.round(Math.min(i+8,send.length)/send.length*100)+'%';
+  }
+  // ผลจริง (อิงแผนที่ตรวจไว้ + ผลแต่ละแถวจากการบันทึก)
+  IMP.result = IMP.plan.map(p=>{ const r=res[p.line]; if(!r) return Object.assign({},p,{done:false}); return Object.assign({},p,{ done:!!r.done, action:r.done?p.action:'error', msg:r.done?p.msg:(r.msg||p.msg), code:r.code||p.code }); });
+  IMP.unsure = unsure;
+  busy(btn,false); delete ov.dataset.lock;
+  return true;
+}
+async function showResult(){
+  const ok = IMP.result.filter(p=>p.done).length, bad = IMP.result.filter(p=>p.action==='error').length;
+  reloadQuiet();
+  await modal({ icon: bad?'⚠️':'✅', title: bad?`นำเข้าแล้ว ${ok} รายการ · ไม่สำเร็จ ${bad}`:`นำเข้าสำเร็จ ${ok} รายการ`,
+    sub:'สรุปสิ่งที่เปลี่ยนไป', wide:true, danger:!!bad,
+    html: (IMP.unsure?'<p class="msg" style="margin-bottom:8px">บางก้อนเซิร์ฟเวอร์ตอบไม่ชัด — นำเข้าไฟล์เดิมซ้ำได้ ไม่เกิดคนซ้ำ</p>':'') + planHtml(IMP.result, true) });
+}
+
 document.getElementById('search').addEventListener('input', e=>{ q=e.target.value; render(); });
 
 /* ── gate / load ── */
@@ -279,6 +703,8 @@ async function loadUsers(){
   if(data && data.denied){ showGate('ไม่มีสิทธิ์เข้าถึง','หน้านี้สำหรับแอดมินเท่านั้น (UID ของคุณไม่อยู่ใน DATA_ADMIN)'); return; }
   if(!data || !data.ok){ showGate('โหลดข้อมูลไม่สำเร็จ',(data && data.error) || 'ลองรีเฟรชอีกครั้ง'); return; }
   USERS = data.users || [];
+  PREREGS = data.preregs || [];
+  if(filterRole==='pre' && !PREREGS.length) filterRole='all';
   hideGate();
   render();
 }
