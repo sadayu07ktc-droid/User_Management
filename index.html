@@ -625,7 +625,7 @@ function planHtml(plan, result){
   const chips = ['add','prereg','update','prereg-update','same','error'].filter(k=>by[k]).map(k=>`<span class="sc ${ACT[k].cls}">${ACT[k].t.replace(/\s*\(.*\)/,'')}<b>${by[k].length}</b></span>`).join('');
   const roleTh = r => (ROLES[r]||{}).label || r || '—';
   const one = p => {
-    const st = result ? (p.done?'<span class="ok">✓ สำเร็จ</span>':(p.action==='same'?'':'<span class="no">✗ ไม่สำเร็จ</span>')) : '';
+    const st = result ? (p.done?'<span class="ok">✓ สำเร็จ</span>':(p.failed?'<span class="no">✗ ไม่สำเร็จ</span>':'')) : '';
     const chg = (p.changes||[]).length ? `<div class="chg">${p.changes.map(c=>`<span class="k">${esc(c.label)}</span><span>${c.old?`<s>${esc(c.old)}</s> → `:''}<ins>${esc(c.new)}</ins></span>`).join('')}</div>` : '';
     const sub = [roleTh(p.role), p.phone, p.code].filter(Boolean).join(' · ');
     return `<div class="srow ${p.action==='error'?'err':''}"><div class="t"><span class="ln">แถว ${p.line}</span><span class="nm">${esc(p.curName&&p.curName!==p.name?p.curName:(p.name||'—'))}</span>${st}</div>
@@ -667,15 +667,16 @@ async function applyImport(ov, btn){
     bar.style.width = Math.round(Math.min(i+8,send.length)/send.length*100)+'%';
   }
   // ผลจริง (อิงแผนที่ตรวจไว้ + ผลแต่ละแถวจากการบันทึก)
-  IMP.result = IMP.plan.map(p=>{ const r=res[p.line]; if(!r) return Object.assign({},p,{done:false}); return Object.assign({},p,{ done:!!r.done, action:r.done?p.action:'error', msg:r.done?p.msg:(r.msg||p.msg), code:r.code||p.code }); });
+  IMP.result = IMP.plan.map(p=>{ const r=res[p.line]; if(!r) return Object.assign({},p,{done:false}); return Object.assign({},p,{ done:!!r.done, failed:!r.done, action:r.done?p.action:'error', msg:r.done?p.msg:(r.msg||p.msg), code:r.code||p.code }); });
   IMP.unsure = unsure;
   busy(btn,false); delete ov.dataset.lock;
   return true;
 }
 async function showResult(){
-  const ok = IMP.result.filter(p=>p.done).length, bad = IMP.result.filter(p=>p.action==='error').length;
+  const ok = IMP.result.filter(p=>p.done).length, bad = IMP.result.filter(p=>p.failed).length;
+  const skip = IMP.result.filter(p=>p.action==='error' && !p.failed).length;
   reloadQuiet();
-  await modal({ icon: bad?'⚠️':'✅', title: bad?`นำเข้าแล้ว ${ok} รายการ · ไม่สำเร็จ ${bad}`:`นำเข้าสำเร็จ ${ok} รายการ`,
+  await modal({ icon: bad?'⚠️':'✅', title: (bad?`นำเข้าแล้ว ${ok} รายการ · ไม่สำเร็จ ${bad}`:`นำเข้าสำเร็จ ${ok} รายการ`) + (skip?` · ข้าม ${skip}`:''),
     sub:'สรุปสิ่งที่เปลี่ยนไป', wide:true, danger:!!bad,
     html: (IMP.unsure?'<p class="msg" style="margin-bottom:8px">บางก้อนเซิร์ฟเวอร์ตอบไม่ชัด — นำเข้าไฟล์เดิมซ้ำได้ ไม่เกิดคนซ้ำ</p>':'') + planHtml(IMP.result, true) });
 }
