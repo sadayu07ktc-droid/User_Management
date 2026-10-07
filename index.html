@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ผู้ใช้งาน / สิทธิ์ · SSB</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<!-- ssbFetch: อ่านจาก Supabase Edge ก่อน พลาด → GAS (ไฟล์อยู่ repo SSB-SMART-SUPPLY-DASHBOARD) · โหลดไม่ได้ก็ใช้ fetch เดิม -->
+<script src="https://sadayu07ktc-droid.github.io/SSB-SMART-SUPPLY-DASHBOARD/ssb-read.js?v=20261007l"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
@@ -427,7 +429,7 @@ async function postJson(body, canRetry){
 async function reloadQuiet(){
   for(let n=1;n<=3;n++){
     try{
-      const r = await fetch(GAS_URL+'?action=getUsers&userId='+encodeURIComponent(MY_UID)+'&t='+Date.now());
+      const r = await (window.ssbFetch || fetch)(GAS_URL+'?action=getUsers&userId='+encodeURIComponent(MY_UID)+'&t='+Date.now());
       const d = JSON.parse(await r.text());
       if(d && d.ok){ USERS=d.users||[]; PREREGS=d.preregs||[]; if(filterRole==='pre'&&!PREREGS.length) filterRole='all'; render(); return true; }
     }catch(e){}
@@ -692,7 +694,8 @@ function hideGate(){ document.getElementById('gate').style.display='none'; }
 
 async function loadUsers(){
   const url = GAS_URL + '?action=getUsers&userId=' + encodeURIComponent(MY_UID) + '&t=' + Date.now();
-  const res = await fetch(url);
+  // ⚡ ssbFetch = Supabase Edge "ssb-misc" ก่อน (~1 วิ · ผลตรง GAS ทุกฟิลด์) พลาด/เกิน 10 วิ → GAS เดิม
+  const res = await (window.ssbFetch || fetch)(url);
   const raw = await res.text();
   let data;
   try{ data = JSON.parse(raw); }
