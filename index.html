@@ -61,6 +61,8 @@
   .stab{font-family:inherit;font-size:12px;font-weight:500;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-soft);padding:4px 11px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
   .stab.on{background:var(--r-driver-bg);border-color:var(--r-driver);color:var(--r-driver)}
   .stab .n{font-family:'IBM Plex Mono',monospace;font-size:11px;opacity:.75}
+  .gbadge .tc{font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:500;opacity:.75;margin-left:5px;letter-spacing:.02em}
+  .scopebar{display:flex;align-items:center;gap:8px;font-size:13px;padding:9px 13px;border-radius:12px;margin-bottom:14px;border:1px solid currentColor;background:var(--surface)}
   .gbadge{display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;margin:6px 0 0 4px;border:1px solid currentColor}
 
   .list{display:grid;grid-template-columns:repeat(2,1fr);gap:13px}
@@ -230,6 +232,7 @@
     </div>
   </div>
 
+  <div class="scopebar" id="scopebar" style="display:none"></div>
   <div class="tabs" id="tabs"></div>
   <div class="subtabs" id="subtabs"></div>
   <div class="list" id="list"></div>
@@ -270,6 +273,18 @@ let filterGroup = 'all';   // กลุ่มงานคนขับ (ใช้
 const GROUPS = { 'ไร่': { label:'🌴 ไร่', c:'#2D6A4F' }, Bulk: { label:'🏭 Bulk', c:'#C2410C' }, Packing: { label:'📦 Packing', c:'#0E7490' } };
 const GROUP_ORDER = ['ไร่','Bulk','Packing'];
 const groupOf = u => GROUPS[u.jobGroup] ? u.jobGroup : (/^DVB-/.test(u.code||'') ? 'Bulk' : /^DVP-/.test(u.code||'') ? 'Packing' : 'ไร่');
+/* ประเภทแอดมิน (ตาราง admins · สีเดียวกับหน้าตั้งค่าสิทธิ์ admins.html) · ไร่=ADMIN · ผู้จัดการ/ผู้บริหาร = ทุกแผนก · 2026-10-08 */
+const ATYPES = {
+  ADMIN:      { label:'🌴 ไร่',                c:'#4F46E5' },
+  ADMIN_BULK: { label:'🏭 Bulk',               c:'#C2410C' },
+  ADMIN_PK:   { label:'📦 Packing',            c:'#0E7490' },
+  MANAGER:    { label:'👔 ผู้จัดการ · ทุกแผนก', c:'#A97516' },
+  EXECUTIVE:  { label:'📊 ผู้บริหาร · ทุกแผนก', c:'#9F1239' },
+};
+const ATYPE_ORDER = ['ADMIN','ADMIN_BULK','ADMIN_PK','MANAGER','EXECUTIVE'];
+const atypeOf = u => ATYPES[u.adminType] ? u.adminType : '';
+const typeBadge = u => { const k = atypeOf(u); return k ? `<span class="gbadge" style="color:${ATYPES[k].c}">${ATYPES[k].label}<span class="tc">${k}</span></span>` : ''; };
+let SCOPE = '';   // '' = เห็นทั้งหมด · 'Bulk'/'Packing' = แอดมินกลุ่ม เห็นเฉพาะคนขับกลุ่มนั้น (server กรองให้แล้ว)
 let q = '';
 
 const cv = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
@@ -282,7 +297,8 @@ function esc(s){ const d=document.createElement('div'); d.textContent=(s==null?'
 function renderTabs(){
   const counts = { all: USERS.length, pre: PREREGS.length };
   ROLE_ORDER.forEach(r => counts[r] = USERS.filter(u => roleOf(u)===r).length);
-  const defs = [['all','ทั้งหมด',null], ...ROLE_ORDER.map(r=>[r, ROLES[r].label, ROLES[r].c])];
+  const defs = SCOPE ? [['Driver', ROLES.Driver.label+' · '+GROUPS[SCOPE].label, ROLES.Driver.c]]
+                     : [['all','ทั้งหมด',null], ...ROLE_ORDER.map(r=>[r, ROLES[r].label, ROLES[r].c])];
   if(PREREGS.length || filterRole==='pre') defs.push(['pre','⏳ รอผูก LINE',null]);
   document.getElementById('tabs').innerHTML = defs.map(([k,label,col]) => `
     <button class="tab ${filterRole===k?'on':''}" onclick="setRole('${k}')">
@@ -290,7 +306,16 @@ function renderTabs(){
       ${label}<span class="n">${counts[k]||0}</span>
     </button>`).join('');
   const sub = document.getElementById('subtabs');
-  if (filterRole !== 'Driver') { sub.innerHTML = ''; return; }
+  if (filterRole === 'Admin') {   // ชิปย่อยประเภทแอดมิน
+    const adm = USERS.filter(u => roleOf(u) === 'Admin');
+    const ks = ATYPE_ORDER.filter(k => adm.some(u => atypeOf(u) === k));
+    const none = adm.filter(u => !atypeOf(u)).length;
+    sub.innerHTML = [['all','ทั้งหมด', adm.length]].concat(ks.map(k => [k, ATYPES[k].label, adm.filter(u => atypeOf(u) === k).length]))
+      .concat(none ? [['none','ไม่มีในตารางสิทธิ์', none]] : [])
+      .map(([k,label,n]) => `<button class="stab ${filterGroup===k?'on':''}" onclick="setGroup('${k}')">${label}<span class="n">${n}</span></button>`).join('');
+    return;
+  }
+  if (filterRole !== 'Driver' || SCOPE) { sub.innerHTML = ''; return; }
   const drv = USERS.filter(u => roleOf(u) === 'Driver');
   sub.innerHTML = [['all','ทั้งหมด', drv.length]].concat(GROUP_ORDER.map(g => [g, GROUPS[g].label, drv.filter(u => groupOf(u) === g).length]))
     .map(([k,label,n]) => `<button class="stab ${filterGroup===k?'on':''}" onclick="setGroup('${k}')">${label}<span class="n">${n}</span></button>`).join('');
@@ -311,7 +336,7 @@ function renderPre(){
         <div class="name">${esc(p.name||'—')}</div>
         <div class="line mono">${esc(p.phone||'—')}</div>
         ${car?`<div class="extra">${esc(car)}</div>`:''}
-        <span class="rbadge" style="background:${cv(rc.bg)};color:${cv(rc.c)}"><span class="pip" style="background:${cv(rc.c)}"></span>${rc.label}</span>
+        <span class="rbadge" style="background:${cv(rc.bg)};color:${cv(rc.c)}"><span class="pip" style="background:${cv(rc.c)}"></span>${rc.label}</span>${p.role==='Driver'&&GROUPS[p.jobGroup]?`<span class="gbadge" style="color:${GROUPS[p.jobGroup].c}">${GROUPS[p.jobGroup].label}</span>`:''}
         <div class="uid">สมัคร LINE ด้วยเบอร์นี้ → ผูกและใช้งานได้ทันที${p.role==='Admin'?' (แอดมิน: ต้องกดอนุมัติอีกครั้ง)':''}</div>
       </div>
       <div class="side">
@@ -325,6 +350,7 @@ function renderPre(){
 function matches(u){
   if(filterRole!=='all' && roleOf(u)!==filterRole) return false;
   if(filterRole==='Driver' && filterGroup!=='all' && groupOf(u)!==filterGroup) return false;
+  if(filterRole==='Admin' && filterGroup!=='all' && (atypeOf(u)||'none')!==filterGroup) return false;
   if(!q) return true;
   const hay = ((u.name||'')+' '+(u.phone||'')+' '+(u.uid||'')+' '+(u.extra||'')).toLowerCase();
   return hay.includes(q.toLowerCase());
@@ -340,14 +366,15 @@ function render(){
   el.innerHTML = list.map(u=>{
     const r = roleOf(u), rc = ROLES[r];
     const active = isActive(u);
+    const tcol = r==='Admin' && atypeOf(u) ? ATYPES[atypeOf(u)].c : cv(rc.c);   // แอดมิน: สีตามประเภท
     return `<div class="card ${active?'':'inactive'}" data-uid="${esc(u.uid)}">
-      <div class="edge" style="background:${cv(rc.c)}"></div>
-      <div class="avatar" style="background:${cv(rc.c)}">${esc(initials(u.name))}</div>
+      <div class="edge" style="background:${tcol}"></div>
+      <div class="avatar" style="background:${tcol}">${esc(initials(u.name))}</div>
       <div class="who">
         <div class="name">${esc(u.name||'—')}${u.code?`<span class="code">${esc(u.code)}</span>`:''}</div>
         <div class="line mono">${esc(u.phone||'—')}</div>
         ${u.extra?`<div class="extra">${esc(u.extra)}</div>`:''}
-        <span class="rbadge" style="background:${cv(rc.bg)};color:${cv(rc.c)}"><span class="pip" style="background:${cv(rc.c)}"></span>${rc.label}</span>${r==='Driver'?`<span class="gbadge" style="color:${GROUPS[groupOf(u)].c}">${GROUPS[groupOf(u)].label}</span>`:''}
+        <span class="rbadge" style="background:${cv(rc.bg)};color:${cv(rc.c)}"><span class="pip" style="background:${cv(rc.c)}"></span>${rc.label}</span>${r==='Driver'?`<span class="gbadge" style="color:${GROUPS[groupOf(u)].c}">${GROUPS[groupOf(u)].label}</span>`:''}${r==='Admin'?typeBadge(u):''}
         ${r==='Owner'?`<a class="golink" href="https://sadayu07ktc-droid.github.io/SSB-SMART-SUPPLY-DASHBOARD/garden.html?uid=${encodeURIComponent(u.uid)}">🌳 ดูข้อมูลสวน ›</a>`:''}
         ${r==='Admin'?`<a class="golink" href="https://sadayu07ktc-droid.github.io/SSB-SMART-SUPPLY-DASHBOARD/admins.html">🔑 ตั้งค่าสิทธิ์ ›</a>`:''}
         <div class="uid mono">${esc(u.uid||'')}</div>
@@ -362,7 +389,7 @@ function render(){
   }).join('');
 }
 
-function setRole(r){ filterRole = r; if (r !== 'Driver') filterGroup = 'all'; render(); }
+function setRole(r){ filterRole = r; filterGroup = SCOPE || 'all'; render(); }
 function setGroup(g){ filterGroup = g; render(); }
 
 async function toggleUser(btn, uid){
@@ -451,7 +478,7 @@ async function reloadQuiet(){
     try{
       const r = await (window.ssbFetch || fetch)(GAS_URL+'?action=getUsers&userId='+encodeURIComponent(MY_UID)+'&t='+Date.now());
       const d = JSON.parse(await r.text());
-      if(d && d.ok){ USERS=d.users||[]; PREREGS=d.preregs||[]; if(filterRole==='pre'&&!PREREGS.length) filterRole='all'; render(); return true; }
+      if(d && d.ok){ USERS=d.users||[]; PREREGS=d.preregs||[]; applyScope(d.scope); if(filterRole==='pre'&&!PREREGS.length) filterRole='all'; render(); return true; }
     }catch(e){}
     await new Promise(r=>setTimeout(r,900*n));
   }
@@ -467,11 +494,13 @@ function busy(btn, on, label){
 const VEH = ['4 ล้อ','6 ล้อ','10 ล้อ','พ่วง(Trailer)'];   // ตัด รถ CPO (2026-10-08)
 const digits = s => String(s||'').replace(/\D/g,'');
 function openAdd(){
-  const roleOpts = ROLE_ORDER.map(r=>`<option value="${r}" ${r==='Driver'?'selected':''}>${ROLES[r].label}</option>`).join('');
+  const roleOpts = (SCOPE ? ['Driver'] : ROLE_ORDER).map(r=>`<option value="${r}" ${r==='Driver'?'selected':''}>${ROLES[r].label}</option>`).join('');
+  const grpOpts = (SCOPE ? [SCOPE] : GROUP_ORDER).map(g=>`<option value="${g}">${GROUPS[g].label}</option>`).join('');
   const html = `<div class="fg">
     <div class="fd"><label for="aName">ชื่อ<span class="req">* จำเป็น</span></label><input id="aName" autocomplete="off" placeholder="เช่น สมชาย ใจดี" autofocus></div>
     <div class="fd"><label for="aPhone">เบอร์โทร<span class="req">* จำเป็น</span></label><input id="aPhone" inputmode="tel" autocomplete="off" placeholder="0812345678"></div>
-    <div class="fd"><label for="aRole">บทบาท<span class="req">* จำเป็น</span></label><select id="aRole">${roleOpts}</select></div>
+    <div class="fd"><label for="aRole">บทบาท<span class="req">* จำเป็น</span></label><select id="aRole" ${SCOPE?'disabled':''}>${roleOpts}</select></div>
+    <div class="fd veh"><label for="aGrp">กลุ่มงาน<span class="req">* จำเป็น</span></label><select id="aGrp" ${SCOPE?'disabled':''}>${grpOpts}</select></div>
     <div class="fd veh"><label for="aVeh">ประเภทรถ</label><select id="aVeh"><option value="">— เลือก —</option>${VEH.map(v=>`<option>${v}</option>`).join('')}</select></div>
     <div class="fd veh full"><label for="aPlate">ทะเบียนรถ</label><input id="aPlate" autocomplete="off" placeholder="85-4587"><div class="hint" id="aPlateHint"></div></div>
     <div class="fd full"><label for="aUid">LINE UID <span style="font-weight:400;color:var(--ink-faint)">(ถ้ามี)</span></label><input id="aUid" class="mono" autocomplete="off" spellcheck="false" placeholder="U + 32 ตัว — เว้นว่างได้"></div>
@@ -504,7 +533,8 @@ async function saveAdd(ov, btn){
   const $=id=>ov.querySelector('#'+id);
   ov.querySelectorAll('.bad').forEach(x=>x.classList.remove('bad'));
   const u={ name:$('aName').value.trim(), phone:digits($('aPhone').value), role:$('aRole').value, uid:$('aUid').value.trim(),
-            vehicleType:$('aRole').value==='Driver'?$('aVeh').value:'', plate:$('aRole').value==='Driver'?$('aPlate').value.trim():'' };
+            vehicleType:$('aRole').value==='Driver'?$('aVeh').value:'', plate:$('aRole').value==='Driver'?$('aPlate').value.trim():'',
+            jobGroup:$('aRole').value==='Driver'?$('aGrp').value:'' };
   const bad=(id,msg)=>{ $(id).classList.add('bad'); $(id).focus(); toast(msg,true); return false; };
   if(!u.name) return bad('aName','กรุณากรอกชื่อ');
   if(!/^0\d{8,9}$/.test(u.phone)) return bad('aPhone','เบอร์โทรต้อง 9–10 หลัก ขึ้นต้น 0');
@@ -712,6 +742,17 @@ function showGate(title, sub){
 }
 function hideGate(){ document.getElementById('gate').style.display='none'; }
 
+/* แอดมิน Bulk/Packing: ล็อกไว้ที่คนขับกลุ่มตัวเอง · ซ่อนนำเข้าไฟล์ (server ปฏิเสธอยู่แล้ว) */
+function applyScope(s){
+  SCOPE = GROUPS[s] ? s : '';
+  const bar = document.getElementById('scopebar');
+  if (SCOPE) {
+    filterRole = filterRole==='pre' ? 'pre' : 'Driver'; filterGroup = SCOPE;
+    bar.style.display = ''; bar.style.color = GROUPS[SCOPE].c;
+    bar.innerHTML = `🔒 <span>แอดมิน <b>${SCOPE}</b> — เห็นและจัดการได้เฉพาะ<b>คนขับกลุ่ม ${GROUPS[SCOPE].label}</b></span>`;
+  } else bar.style.display = 'none';
+  const imp = document.querySelector('label[for="impFile"]'); if (imp) imp.style.display = SCOPE ? 'none' : '';
+}
 async function loadUsers(){
   const url = GAS_URL + '?action=getUsers&userId=' + encodeURIComponent(MY_UID) + '&t=' + Date.now();
   // ⚡ ssbFetch = Supabase Edge "ssb-misc" ก่อน (~1 วิ · ผลตรง GAS ทุกฟิลด์) พลาด/เกิน 10 วิ → GAS เดิม
@@ -728,6 +769,7 @@ async function loadUsers(){
   if(!data || !data.ok){ showGate('โหลดข้อมูลไม่สำเร็จ',(data && data.error) || 'ลองรีเฟรชอีกครั้ง'); return; }
   USERS = data.users || [];
   PREREGS = data.preregs || [];
+  applyScope(data.scope);
   if(filterRole==='pre' && !PREREGS.length) filterRole='all';
   hideGate();
   render();
