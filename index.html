@@ -55,6 +55,13 @@
   .tab.on{background:var(--pine);border-color:var(--pine);color:#fff}
   .tab .n{font-family:'IBM Plex Mono',monospace;opacity:.7;font-size:12px}
   .tab.on .n{opacity:.85}
+  /* ชิปย่อยกลุ่มงานคนขับ (โชว์เมื่อเลือกแท็บ คนขับ) · 2026-10-08 */
+  .subtabs{display:flex;gap:6px;flex-wrap:wrap;margin:-4px 0 14px}
+  .subtabs:empty{display:none}
+  .stab{font-family:inherit;font-size:12px;font-weight:500;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-soft);padding:4px 11px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .stab.on{background:var(--r-driver-bg);border-color:var(--r-driver);color:var(--r-driver)}
+  .stab .n{font-family:'IBM Plex Mono',monospace;font-size:11px;opacity:.75}
+  .gbadge{display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;margin:6px 0 0 4px;border:1px solid currentColor}
 
   .list{display:grid;grid-template-columns:repeat(2,1fr);gap:13px}
   @media(max-width:680px){.list{grid-template-columns:1fr}}
@@ -224,6 +231,7 @@
   </div>
 
   <div class="tabs" id="tabs"></div>
+  <div class="subtabs" id="subtabs"></div>
   <div class="list" id="list"></div>
 </main>
 
@@ -257,6 +265,11 @@ let USERS = [];
 let PREREGS = [];   // ลงล่วงหน้าด้วยเบอร์ รอผูก LINE (user_preregs)
 let MY_UID = '';
 let filterRole = 'all';
+let filterGroup = 'all';   // กลุ่มงานคนขับ (ใช้เมื่อ filterRole==='Driver')
+/* กลุ่มงานคนขับ: ไร่ (DV-) / Bulk (DVB-) / Packing (DVP-) — ใช้ jobGroup จากฐาน · ไม่มีค่า = เดาจากรหัส · 2026-10-08 */
+const GROUPS = { 'ไร่': { label:'🌴 ไร่', c:'#2D6A4F' }, Bulk: { label:'🏭 Bulk', c:'#C2410C' }, Packing: { label:'📦 Packing', c:'#0E7490' } };
+const GROUP_ORDER = ['ไร่','Bulk','Packing'];
+const groupOf = u => GROUPS[u.jobGroup] ? u.jobGroup : (/^DVB-/.test(u.code||'') ? 'Bulk' : /^DVP-/.test(u.code||'') ? 'Packing' : 'ไร่');
 let q = '';
 
 const cv = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
@@ -276,6 +289,11 @@ function renderTabs(){
       ${col?`<span class="pip" style="width:7px;height:7px;border-radius:50%;background:${cv(col)}"></span>`:''}
       ${label}<span class="n">${counts[k]||0}</span>
     </button>`).join('');
+  const sub = document.getElementById('subtabs');
+  if (filterRole !== 'Driver') { sub.innerHTML = ''; return; }
+  const drv = USERS.filter(u => roleOf(u) === 'Driver');
+  sub.innerHTML = [['all','ทั้งหมด', drv.length]].concat(GROUP_ORDER.map(g => [g, GROUPS[g].label, drv.filter(u => groupOf(u) === g).length]))
+    .map(([k,label,n]) => `<button class="stab ${filterGroup===k?'on':''}" onclick="setGroup('${k}')">${label}<span class="n">${n}</span></button>`).join('');
 }
 
 /* การ์ดคนที่แอดมินลงไว้ล่วงหน้า (ยังไม่มี LINE UID) — สมัครใน LINE ด้วยเบอร์นี้ = ผูก + Active อัตโนมัติ */
@@ -306,6 +324,7 @@ function renderPre(){
 
 function matches(u){
   if(filterRole!=='all' && roleOf(u)!==filterRole) return false;
+  if(filterRole==='Driver' && filterGroup!=='all' && groupOf(u)!==filterGroup) return false;
   if(!q) return true;
   const hay = ((u.name||'')+' '+(u.phone||'')+' '+(u.uid||'')+' '+(u.extra||'')).toLowerCase();
   return hay.includes(q.toLowerCase());
@@ -328,7 +347,7 @@ function render(){
         <div class="name">${esc(u.name||'—')}${u.code?`<span class="code">${esc(u.code)}</span>`:''}</div>
         <div class="line mono">${esc(u.phone||'—')}</div>
         ${u.extra?`<div class="extra">${esc(u.extra)}</div>`:''}
-        <span class="rbadge" style="background:${cv(rc.bg)};color:${cv(rc.c)}"><span class="pip" style="background:${cv(rc.c)}"></span>${rc.label}</span>
+        <span class="rbadge" style="background:${cv(rc.bg)};color:${cv(rc.c)}"><span class="pip" style="background:${cv(rc.c)}"></span>${rc.label}</span>${r==='Driver'?`<span class="gbadge" style="color:${GROUPS[groupOf(u)].c}">${GROUPS[groupOf(u)].label}</span>`:''}
         ${r==='Owner'?`<a class="golink" href="https://sadayu07ktc-droid.github.io/SSB-SMART-SUPPLY-DASHBOARD/garden.html?uid=${encodeURIComponent(u.uid)}">🌳 ดูข้อมูลสวน ›</a>`:''}
         ${r==='Admin'?`<a class="golink" href="https://sadayu07ktc-droid.github.io/SSB-SMART-SUPPLY-DASHBOARD/admins.html">🔑 ตั้งค่าสิทธิ์ ›</a>`:''}
         <div class="uid mono">${esc(u.uid||'')}</div>
@@ -343,7 +362,8 @@ function render(){
   }).join('');
 }
 
-function setRole(r){ filterRole = r; render(); }
+function setRole(r){ filterRole = r; if (r !== 'Driver') filterGroup = 'all'; render(); }
+function setGroup(g){ filterGroup = g; render(); }
 
 async function toggleUser(btn, uid){
   const u = USERS.find(x=>x.uid===uid); if(!u) return;
@@ -444,7 +464,7 @@ function busy(btn, on, label){
 }
 
 /* ═════════ ➕ เพิ่มผู้ใช้ทีละคน ═════════ */
-const VEH = ['4 ล้อ','6 ล้อ','10 ล้อ','พ่วง(Trailer)','รถ CPO'];
+const VEH = ['4 ล้อ','6 ล้อ','10 ล้อ','พ่วง(Trailer)'];   // ตัด รถ CPO (2026-10-08)
 const digits = s => String(s||'').replace(/\D/g,'');
 function openAdd(){
   const roleOpts = ROLE_ORDER.map(r=>`<option value="${r}" ${r==='Driver'?'selected':''}>${ROLES[r].label}</option>`).join('');
