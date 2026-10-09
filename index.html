@@ -58,6 +58,8 @@
   /* ชิปย่อยกลุ่มงานคนขับ (โชว์เมื่อเลือกแท็บ คนขับ) · 2026-10-08 */
   .subtabs{display:flex;gap:6px;flex-wrap:wrap;margin:-4px 0 14px}
   .subtabs:empty{display:none}
+  .vtabs{margin-top:-8px}   /* ชิปประเภทรถ (แถวที่ 3 ใต้กลุ่มงาน) · 2026-10-09 */
+  .vtabs .stab.on{background:var(--ink,#15241D);border-color:var(--ink,#15241D);color:var(--surface,#fff)}
   .stab{font-family:inherit;font-size:12px;font-weight:500;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-soft);padding:4px 11px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
   .stab.on{background:var(--r-driver-bg);border-color:var(--r-driver);color:var(--r-driver)}
   .stab .n{font-family:'IBM Plex Mono',monospace;font-size:11px;opacity:.75}
@@ -235,6 +237,7 @@
   <div class="scopebar" id="scopebar" style="display:none"></div>
   <div class="tabs" id="tabs"></div>
   <div class="subtabs" id="subtabs"></div>
+  <div class="subtabs vtabs" id="vtabs"></div>
   <div class="list" id="list"></div>
 </main>
 
@@ -268,6 +271,9 @@ let USERS = [];
 let PREREGS = [];   // ลงล่วงหน้าด้วยเบอร์ รอผูก LINE (user_preregs)
 let MY_UID = '';
 let filterRole = 'all';
+let filterVeh = 'all';     // ประเภทรถคนขับ (แถวที่ 3 · ใช้เมื่อ filterRole==='Driver') · 2026-10-09
+const VEH_ORDER = ['4 ล้อ','6 ล้อ','10 ล้อ','พ่วง(Trailer)'];
+const vehOf = u => { const s = String(u.vehicleType||''); return /พ่วง|trailer|CPO/i.test(s) ? 'พ่วง(Trailer)' : /10/.test(s) ? '10 ล้อ' : /6/.test(s) ? '6 ล้อ' : /4/.test(s) ? '4 ล้อ' : 'ไม่ระบุ'; };
 let filterGroup = 'all';   // กลุ่มงานคนขับ (ใช้เมื่อ filterRole==='Driver')
 /* กลุ่มงานคนขับ: ไร่ (DV-) / Bulk (DVB-) / Packing (DVP-) — ใช้ jobGroup จากฐาน · ไม่มีค่า = เดาจากรหัส · 2026-10-08 */
 const GROUPS = { 'ไร่': { label:'🌴 ไร่', c:'#2D6A4F' }, Bulk: { label:'🏭 Bulk', c:'#C2410C' }, Packing: { label:'📦 Packing', c:'#0E7490' } };
@@ -306,6 +312,15 @@ function renderTabs(){
       ${label}<span class="n">${counts[k]||0}</span>
     </button>`).join('');
   const sub = document.getElementById('subtabs');
+  // แถวที่ 3: ประเภทรถ (นับเฉพาะคนขับในกลุ่มที่เลือกอยู่)
+  const vt = document.getElementById('vtabs');
+  if (filterRole === 'Driver') {
+    const pool = USERS.filter(u => roleOf(u) === 'Driver' && (filterGroup === 'all' || groupOf(u) === filterGroup));
+    const none = pool.filter(u => vehOf(u) === 'ไม่ระบุ').length;
+    vt.innerHTML = [['all','🚚 ทุกประเภทรถ', pool.length]].concat(VEH_ORDER.map(k => [k, k, pool.filter(u => vehOf(u) === k).length]))
+      .concat(none ? [['ไม่ระบุ','ไม่ระบุ', none]] : [])
+      .map(([k,label,n]) => `<button class="stab ${filterVeh===k?'on':''}" onclick="setVeh('${k}')">${label}<span class="n">${n}</span></button>`).join('');
+  } else vt.innerHTML = '';
   if (filterRole === 'Admin') {   // ชิปย่อยประเภทแอดมิน
     const adm = USERS.filter(u => roleOf(u) === 'Admin');
     const ks = ATYPE_ORDER.filter(k => adm.some(u => atypeOf(u) === k));
@@ -350,6 +365,7 @@ function renderPre(){
 function matches(u){
   if(filterRole!=='all' && roleOf(u)!==filterRole) return false;
   if(filterRole==='Driver' && filterGroup!=='all' && groupOf(u)!==filterGroup) return false;
+  if(filterRole==='Driver' && filterVeh!=='all' && vehOf(u)!==filterVeh) return false;
   if(filterRole==='Admin' && filterGroup!=='all' && (atypeOf(u)||'none')!==filterGroup) return false;
   if(!q) return true;
   const hay = ((u.name||'')+' '+(u.phone||'')+' '+(u.uid||'')+' '+(u.extra||'')).toLowerCase();
@@ -389,7 +405,8 @@ function render(){
   }).join('');
 }
 
-function setRole(r){ filterRole = r; filterGroup = SCOPE || 'all'; render(); }
+function setRole(r){ filterRole = r; filterGroup = SCOPE || 'all'; filterVeh = 'all'; render(); }
+function setVeh(v){ filterVeh = v; render(); }
 function setGroup(g){ filterGroup = g; render(); }
 
 async function toggleUser(btn, uid){
