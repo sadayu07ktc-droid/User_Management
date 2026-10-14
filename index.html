@@ -135,6 +135,10 @@
   .waitpill{font-size:11px;font-weight:600;color:var(--gold);background:#FBEED3;padding:3px 9px;border-radius:999px;white-space:nowrap}
   .mini{font-family:inherit;font-size:12px;font-weight:600;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-soft);padding:5px 10px;border-radius:8px;cursor:pointer}
   .mini:hover{border-color:#A91F12;color:#A91F12}
+  .mini.edit:hover{border-color:var(--pine);color:var(--pine)}
+  .pwarn{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:#9A5B06;background:#FDF1DC;border:1px solid #F1D29B;padding:2px 8px;border-radius:999px;margin-top:5px}
+  .pprev{font-size:12.5px;color:var(--ink-soft);margin-top:2px}
+  .pprev b{font-family:'IBM Plex Mono',monospace;color:var(--ink);font-weight:600}
   .code{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--ink-soft);background:var(--surface-2);border:1px solid var(--line);padding:1px 7px;border-radius:6px;margin-left:6px;vertical-align:1px}
 
   /* ── กล่อง popup ── */
@@ -388,8 +392,9 @@ function render(){
       <div class="avatar" style="background:${tcol}">${esc(initials(u.name))}</div>
       <div class="who">
         <div class="name">${esc(u.name||'—')}${u.code?`<span class="code">${esc(u.code)}</span>`:''}</div>
-        <div class="line mono">${esc(u.phone||'—')}</div>
+        <div class="line mono">${esc(String(u.phone||'—').replace(/^'/,''))}</div>
         ${u.extra?`<div class="extra">${esc(u.extra)}</div>`:''}
+        ${r==='Driver'&&plateIssue(u)?`<div class="pwarn" title="${esc(plateIssue(u))}">⚠️ ${esc(plateIssue(u))}</div>`:''}
         <span class="rbadge" style="background:${cv(rc.bg)};color:${cv(rc.c)}"><span class="pip" style="background:${cv(rc.c)}"></span>${rc.label}</span>${r==='Driver'?`<span class="gbadge" style="color:${GROUPS[groupOf(u)].c}">${GROUPS[groupOf(u)].label}</span>`:''}${r==='Admin'?typeBadge(u):''}
         ${r==='Owner'?`<a class="golink" href="https://sadayu07ktc-droid.github.io/SSB-SMART-SUPPLY-DASHBOARD/garden.html?uid=${encodeURIComponent(u.uid)}">🌳 ดูข้อมูลสวน ›</a>`:''}
         ${r==='Admin'?`<a class="golink" href="https://sadayu07ktc-droid.github.io/SSB-SMART-SUPPLY-DASHBOARD/admins.html">🔑 ตั้งค่าสิทธิ์ ›</a>`:''}
@@ -400,6 +405,7 @@ function render(){
         <button class="toggle ${active?'on':''}" data-role="toggle" onclick="toggleUser(this,'${esc(u.uid)}')" aria-label="สลับสถานะ">
           <span class="knob"></span>
         </button>
+        ${r==='Driver'?`<button class="mini edit" type="button" onclick="openEditDriver('${esc(u.uid)}')">✏️ แก้ไข</button>`:''}
       </div>
     </div>`;
   }).join('');
@@ -566,6 +572,87 @@ async function saveAdd(ov, btn){
     reloadQuiet(); return true;
   }
   if(r && r.unsure){ toast('ไม่แน่ใจว่าบันทึกสำเร็จ — กำลังโหลดรายชื่อมาตรวจ', true); reloadQuiet(); return true; }
+  toast((r && r.error) || 'บันทึกไม่สำเร็จ', true); return false;
+}
+
+/* ═════════ ✏️ แก้ไขคนขับ: ชื่อ / ประเภทรถ / ทะเบียน (Edge user-admin · 2026-10-14) ═════════
+ * ทะเบียน: พ่วง = หัว + ลูก (2 ป้าย) · อื่นๆ = ป้ายเดียว · "857271" → "85-7271" อัตโนมัติ
+ * ⚠️ กติกาเดียวกับ Edge user-admin onePlate/updateDriver — แก้ต้องแก้ทั้งสองที่ */
+const USER_ADMIN_URL = 'https://abihhdjcrbvwlkzwvjio.supabase.co/functions/v1/user-admin';
+function fmtPlate(p){
+  let v = String(p||'').replace(/\s+/g,' ').replace(/\s*-\s*/g,'-').trim();
+  const m = v.match(/^(\d{2}) ?(\d{4})$/); if(m) v = m[1]+'-'+m[2];
+  return v;
+}
+const plateOk = v => /\d/.test(v) && /^[฀-๿A-Za-z0-9\- ]{2,15}$/.test(v);
+const plateParts = s => String(s||'').split(/\s*[,/]\s*/).map(x=>x.trim()).filter(Boolean);
+/* ทะเบียนในฐานผิดรูปแบบไหม → ข้อความเตือนบนการ์ด ('' = ปกติ) */
+function plateIssue(u){
+  const parts = plateParts(u.plate), tr = vehOf(u)==='พ่วง(Trailer)';
+  if(!parts.length) return 'ยังไม่มีทะเบียนรถ';
+  if(vehOf(u)==='ไม่ระบุ') return 'ยังไม่ระบุประเภทรถ';
+  if(tr && parts.length!==2) return 'รถพ่วงต้องมีทะเบียน หัว + ลูก';
+  if(!tr && parts.length!==1) return 'มี '+parts.length+' ป้าย แต่ประเภทรถเป็น '+vehOf(u);
+  if(parts.some(p=>fmtPlate(p)!==p || !plateOk(p))) return 'รูปแบบทะเบียนไม่ถูกต้อง';
+  return '';
+}
+function openEditDriver(uid){
+  const u = USERS.find(x=>x.uid===uid); if(!u) return;
+  const parts = plateParts(u.plate), cur = vehOf(u)==='ไม่ระบุ' ? '' : vehOf(u);
+  const html = `<div class="fg">
+    <div class="fd full"><label for="eName">ชื่อคนขับ<span class="req">* จำเป็น</span></label><input id="eName" autocomplete="off" value="${esc(u.name||'')}"></div>
+    <div class="fd full"><label for="eVeh">ประเภทรถ<span class="req">* จำเป็น</span></label><select id="eVeh"><option value="">— เลือก —</option>${VEH.map(v=>`<option ${v===cur?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div class="fd" id="eHeadBox"><label for="eHead" id="eHeadLbl">ทะเบียนรถ<span class="req">* จำเป็น</span></label><input id="eHead" autocomplete="off" placeholder="85-4587" value="${esc(parts[0]||'')}"></div>
+    <div class="fd" id="eTailBox"><label for="eTail">ทะเบียนลูก (หาง)<span class="req">* จำเป็น</span></label><input id="eTail" autocomplete="off" placeholder="85-4586" value="${esc(parts.slice(1).join(' / '))}"></div>
+    <div class="full"><div class="pprev" id="ePrev"></div>${plateIssue(u)?`<div class="pwarn">⚠️ ตอนนี้: ${esc(plateIssue(u))}</div>`:''}</div>
+  </div>`;
+  return modal({ icon:'✏️', title:'แก้ไขคนขับ', sub:(u.code?u.code+' · ':'')+'เปลี่ยนเฉพาะข้อมูลคนขับ — ออเดอร์ที่ผ่านมาไม่เปลี่ยน', html, actions:[
+    {text:'ยกเลิก', val:null, cls:'ghost'},
+    {text:'บันทึก', val:true, cls:'pri', before:(ov,btn)=>saveEditDriver(ov,btn,u)}
+  ], onOpen:ov=>{
+    const $=id=>ov.querySelector('#'+id);
+    const sync=()=>{
+      const tr = $('eVeh').value==='พ่วง(Trailer)';
+      $('eTailBox').hidden = !tr;
+      $('eHeadLbl').firstChild.textContent = tr ? 'ทะเบียนหัว' : 'ทะเบียนรถ';
+      const h = fmtPlate($('eHead').value), t = fmtPlate($('eTail').value);
+      const val = tr ? [h,t].filter(Boolean).join(',') : h;
+      $('ePrev').innerHTML = val ? 'จะบันทึกเป็น: <b>'+esc(val)+'</b>' : '';
+    };
+    ['eVeh','eHead','eTail'].forEach(id=>{ $(id).addEventListener('input',sync); $(id).addEventListener('change',sync); });
+    sync();
+  }});
+}
+async function saveEditDriver(ov, btn, u){
+  const $=id=>ov.querySelector('#'+id);
+  ov.querySelectorAll('.bad').forEach(x=>x.classList.remove('bad'));
+  const bad=(id,msg)=>{ $(id).classList.add('bad'); $(id).focus(); toast(msg,true); return false; };
+  const name=$('eName').value.trim(), veh=$('eVeh').value, tr=veh==='พ่วง(Trailer)';
+  const head=fmtPlate($('eHead').value), tail=fmtPlate($('eTail').value);
+  if(!name) return bad('eName','กรุณากรอกชื่อคนขับ');
+  if(!veh) return bad('eVeh','เลือกประเภทรถ');
+  if(!head) return bad('eHead', tr?'กรอกทะเบียนหัว':'กรอกทะเบียนรถ');
+  if(/[,/]/.test(head) || !plateOk(head)) return bad('eHead','ทะเบียนไม่ถูกต้อง (เช่น 85-4587 หรือ ยค-9996)');
+  if(tr){
+    if(!tail) return bad('eTail','รถพ่วงต้องกรอกทะเบียนลูกด้วย');
+    if(/[,/]/.test(tail) || !plateOk(tail)) return bad('eTail','ทะเบียนลูกไม่ถูกต้อง (ใส่ป้ายเดียว)');
+    if(head.replace(/[\s-]/g,'')===tail.replace(/[\s-]/g,'')) return bad('eTail','ทะเบียนหัวกับลูกต้องไม่ซ้ำกัน');
+  }
+  ov.dataset.lock='1'; busy(btn,true,'กำลังบันทึก');
+  let r;
+  try{
+    const res = await fetch(USER_ADMIN_URL,{ method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({ action:'updateDriver', userId:MY_UID, targetUid:u.uid, name, vehicleType:veh, plate: tr?[head,tail]:[head] }) });
+    r = JSON.parse(await res.text());
+  }catch(e){ r = { ok:false, unsure:true }; }
+  busy(btn,false); delete ov.dataset.lock;
+  if(r && r.ok){
+    toast(r.unchanged ? 'ไม่มีอะไรเปลี่ยน' : '✅ บันทึก '+r.name+' · '+r.plate+' · '+r.vehicleType+(r.sharedWith&&r.sharedWith.length?' (ทะเบียนนี้ใช้ร่วมกับ '+r.sharedWith.join(', ')+')':''));
+    reloadQuiet(); return true;
+  }
+  if(r && r.unsure){ toast('ไม่แน่ใจว่าบันทึกสำเร็จ — กำลังโหลดรายชื่อมาตรวจ', true); reloadQuiet(); return true; }
+  const map={ name:'eName', vehicleType:'eVeh', plate:'eHead', plateHead:'eHead', plateTail:'eTail' };
+  if(r && map[r.field]) return bad(map[r.field], r.error);
   toast((r && r.error) || 'บันทึกไม่สำเร็จ', true); return false;
 }
 
