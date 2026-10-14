@@ -618,7 +618,7 @@ function openEditDriver(uid){
       $('eHeadLbl').firstChild.textContent = tr ? 'ทะเบียนหัว' : 'ทะเบียนรถ';
       $('eHeadBox').classList.toggle('full', !tr);
       $('eHeadHint').innerHTML = tr
-        ? 'ใส่ทะเบียน <b>หัว</b> ช่องนี้ · ทะเบียน <b>ลูก (หาง)</b> ช่องขวา — ช่องละ 1 ป้าย ไม่ต้องใส่ , คั่น'
+        ? 'รถพ่วงกรอก 2 ช่อง ช่องละ 1 ป้าย: <b>หัว</b> ช่องนี้ · <b>ลูก (หาง)</b> ช่องถัดไป — เช่น หัว <b>85-4589</b> ลูก <b>85-4586</b> (ไม่ต้องใส่ , คั่น)'
         : 'พิมพ์ 1 ป้าย เช่น <b>85-4231</b> (พิมพ์ 854231 ระบบเติมขีดให้) · <b>รถพ่วง</b>: เปลี่ยนประเภทรถเป็น <b>พ่วง(Trailer)</b> ก่อน จะมีช่องทะเบียนหัว + ลูก';
       const h = fmtPlate($('eHead').value), t = fmtPlate($('eTail').value);
       const val = tr ? [h,t].filter(Boolean).join(',') : h;
