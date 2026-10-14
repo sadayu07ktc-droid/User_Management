@@ -617,7 +617,8 @@ function openEditDriver(uid){
       $('eHeadLbl').firstChild.textContent = tr ? 'ทะเบียนหัว' : 'ทะเบียนรถ';
       const h = fmtPlate($('eHead').value), t = fmtPlate($('eTail').value);
       const val = tr ? [h,t].filter(Boolean).join(',') : h;
-      $('ePrev').innerHTML = val ? 'จะบันทึกเป็น: <b>'+esc(val)+'</b>' : '';
+      $('ePrev').innerHTML = (val ? 'จะบันทึกเป็น: <b>'+esc(val)+'</b>' : '')
+        + (!tr && t ? '<div class="pwarn">⚠️ ทะเบียนลูก '+esc(t)+' จะไม่ถูกบันทึก — ถ้าเป็นรถพ่วงให้เลือกประเภท พ่วง(Trailer)</div>' : '');
     };
     ['eVeh','eHead','eTail'].forEach(id=>{ $(id).addEventListener('input',sync); $(id).addEventListener('change',sync); });
     sync();
