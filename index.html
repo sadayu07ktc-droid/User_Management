@@ -291,8 +291,10 @@ const ATYPES = {
   ADMIN_PK:   { label:'📦 Packing',            c:'#0E7490' },
   MANAGER:    { label:'👔 ผู้จัดการ · ทุกแผนก', c:'#A97516' },
   EXECUTIVE:  { label:'📊 ผู้บริหาร · ทุกแผนก', c:'#9F1239' },
+  ACC_BULK:   { label:'🧾 บัญชี Bulk', c:'#6D28D9' },
+  YARD_BULK:  { label:'🏭 แอดมินพันตัน', c:'#7C5A12' },
 };
-const ATYPE_ORDER = ['ADMIN','ADMIN_BULK','ADMIN_PK','MANAGER','EXECUTIVE'];
+const ATYPE_ORDER = ['ADMIN','ADMIN_BULK','ADMIN_PK','MANAGER','EXECUTIVE','ACC_BULK','YARD_BULK'];
 const atypeOf = u => ATYPES[u.adminType] ? u.adminType : '';
 const typeBadge = u => { const k = atypeOf(u); return k ? `<span class="gbadge" style="color:${ATYPES[k].c}">${ATYPES[k].label}<span class="tc">${k}</span></span>` : ''; };
 let SCOPE = '';   // '' = เห็นทั้งหมด · 'Bulk'/'Packing' = แอดมินกลุ่ม เห็นเฉพาะคนขับกลุ่มนั้น (server กรองให้แล้ว)
