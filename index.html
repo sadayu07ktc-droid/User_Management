@@ -7,6 +7,7 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <!-- ssbFetch: อ่านจาก Supabase Edge ก่อน พลาด → GAS (ไฟล์อยู่ repo SSB-SMART-SUPPLY-DASHBOARD) · โหลดไม่ได้ก็ใช้ fetch เดิม -->
 <script src="https://sadayu07ktc-droid.github.io/SSB-SMART-SUPPLY-DASHBOARD/ssb-read.js?v=20261007l"></script>
+<script src="https://sadayu07ktc-droid.github.io/SSB-SMART-SUPPLY-DASHBOARD/ssb-pin-gate.js?v=20261014a"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
@@ -226,14 +227,14 @@
     <span class="count" id="count">—</span>
     <div class="acts">
       <button class="btn pri" type="button" onclick="openAdd()">➕ เพิ่มผู้ใช้</button>
-      <div class="dd">
+      <div class="dd" id="dlWrap" hidden>
         <button class="btn" type="button" id="dlBtn" aria-haspopup="menu" aria-expanded="false" onclick="toggleDl(event)">⬇️ ดาวน์โหลด</button>
         <div class="dd-menu" id="dlMenu" role="menu" hidden>
           <button type="button" role="menuitem" onclick="exportCsv(true)">📋 รายชื่อทั้งหมด<small>แก้ใน Excel แล้วนำเข้ากลับ · เพิ่มคนใหม่ต่อท้ายได้</small></button>
           <button type="button" role="menuitem" onclick="exportCsv(false)">📄 เทมเพลตเปล่า<small>หัวคอลัมน์อย่างเดียว ไว้กรอกคนใหม่</small></button>
         </div>
       </div>
-      <label class="btn" for="impFile" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">⬆️ นำเข้าไฟล์</label>
+      <button class="btn" type="button" id="impBtn" hidden onclick="openImport()">⬆️ นำเข้าไฟล์</button>
       <input type="file" id="impFile" accept=".csv,.xlsx,text/csv" hidden onchange="importFile(this)">
     </div>
   </div>
@@ -602,7 +603,7 @@ function openEditDriver(uid){
   const html = `<div class="fg">
     <div class="fd full"><label for="eName">ชื่อคนขับ<span class="req">* จำเป็น</span></label><input id="eName" autocomplete="off" value="${esc(u.name||'')}"></div>
     <div class="fd full"><label for="eVeh">ประเภทรถ<span class="req">* จำเป็น</span></label><select id="eVeh"><option value="">— เลือก —</option>${VEH.map(v=>`<option ${v===cur?'selected':''}>${v}</option>`).join('')}</select></div>
-    <div class="fd" id="eHeadBox"><label for="eHead" id="eHeadLbl">ทะเบียนรถ<span class="req">* จำเป็น</span></label><input id="eHead" autocomplete="off" placeholder="85-4587" value="${esc(parts[0]||'')}"></div>
+    <div class="fd" id="eHeadBox"><label for="eHead" id="eHeadLbl">ทะเบียนรถ<span class="req">* จำเป็น</span></label><input id="eHead" autocomplete="off" placeholder="85-4587" value="${esc(parts[0]||'')}"><div class="hint" id="eHeadHint"></div></div>
     <div class="fd" id="eTailBox"><label for="eTail">ทะเบียนลูก (หาง)<span class="req">* จำเป็น</span></label><input id="eTail" autocomplete="off" placeholder="85-4586" value="${esc(parts.slice(1).join(' / '))}"></div>
     <div class="full"><div class="pprev" id="ePrev"></div>${plateIssue(u)?`<div class="pwarn">⚠️ ตอนนี้: ${esc(plateIssue(u))}</div>`:''}</div>
   </div>`;
@@ -615,6 +616,10 @@ function openEditDriver(uid){
       const tr = $('eVeh').value==='พ่วง(Trailer)';
       $('eTailBox').hidden = !tr;
       $('eHeadLbl').firstChild.textContent = tr ? 'ทะเบียนหัว' : 'ทะเบียนรถ';
+      $('eHeadBox').classList.toggle('full', !tr);
+      $('eHeadHint').innerHTML = tr
+        ? 'ใส่ทะเบียน <b>หัว</b> ช่องนี้ · ทะเบียน <b>ลูก (หาง)</b> ช่องขวา — ช่องละ 1 ป้าย ไม่ต้องใส่ , คั่น'
+        : 'พิมพ์ 1 ป้าย เช่น <b>85-4231</b> (พิมพ์ 854231 ระบบเติมขีดให้) · <b>รถพ่วง</b>: เปลี่ยนประเภทรถเป็น <b>พ่วง(Trailer)</b> ก่อน จะมีช่องทะเบียนหัว + ลูก';
       const h = fmtPlate($('eHead').value), t = fmtPlate($('eTail').value);
       const val = tr ? [h,t].filter(Boolean).join(',') : h;
       $('ePrev').innerHTML = (val ? 'จะบันทึกเป็น: <b>'+esc(val)+'</b>' : '')
@@ -667,7 +672,28 @@ async function cancelPre(id){
 
 /* ═════════ ⬇️ ดาวน์โหลดรายชื่อ / เทมเพลต (CSV เปิดใน Excel ได้ ภาษาไทยไม่เพี้ยน) ═════════ */
 const COLS=['LINE UID','ชื่อ','เบอร์โทร','บทบาท','ทะเบียนรถ','ประเภทรถ','รหัส (อ้างอิง)','สถานะ (อ้างอิง)'];
-function toggleDl(e){ e.stopPropagation(); const m=document.getElementById('dlMenu'); m.hidden=!m.hidden; document.getElementById('dlBtn').setAttribute('aria-expanded',String(!m.hidden)); }
+/* 🔐 ดาวน์โหลด / นำเข้าไฟล์ = เฉพาะ DEV (app_config ADMIN_PERM_EDITORS) + PIN ชุดเดียวกับหน้าสิทธิ์แอดมิน · 2026-10-14
+ *   ปุ่มโชว์เฉพาะ DEV (getPermInfo.canEdit) · กดแล้วใส่ PIN (จำ 15 นาทีในแท็บ) · GAS importUsers ปฏิเสธคนที่ไม่ใช่ DEV ด้วย */
+const PIN_TEXT = 'ดาวน์โหลด / นำเข้ารายชื่อผู้ใช้';
+async function pinOk(){ return window.ssbPinGate ? ssbPinGate(MY_UID, { action:true, text:PIN_TEXT }) : false; }
+async function showDevTools(){
+  let dev = false;
+  try { const i = window.ssbPinInfo ? await ssbPinInfo(MY_UID) : null; dev = !!(i && i.ok && i.canEdit); } catch(e) {}
+  document.getElementById('dlWrap').hidden = !dev;
+  document.getElementById('impBtn').hidden = !dev || !!SCOPE;
+}
+function pinFresh(){ try{ const x=JSON.parse(sessionStorage.getItem('ssb_pin_gate_v1')||'null'); return !(x && x.uid===MY_UID && x.until>Date.now()); }catch(e){ return true; } }
+async function openImport(){
+  const fresh = pinFresh();
+  if (!(await pinOk())) return;
+  if (!fresh) { document.getElementById('impFile').click(); return; }
+  // เพิ่งใส่ PIN → เบราว์เซอร์บางตัว (LINE) ไม่ยอมเปิดหน้าต่างเลือกไฟล์เอง ให้กดปุ่มอีกครั้ง
+  modal({ icon:'⬆️', title:'นำเข้าไฟล์', html:'<div class="msg">PIN ถูกต้อง — กดปุ่มด้านล่างเพื่อเลือกไฟล์ .csv / .xlsx</div>',
+    actions:[{text:'ยกเลิก',val:null,cls:'ghost'},{text:'📂 เลือกไฟล์',val:true,cls:'pri',before:()=>{ document.getElementById('impFile').click(); }}] });
+}
+async function toggleDl(e){ e.stopPropagation(); const m=document.getElementById('dlMenu');
+  if (m.hidden && !(await pinOk())) return;
+  m.hidden=!m.hidden; document.getElementById('dlBtn').setAttribute('aria-expanded',String(!m.hidden)); }
 document.addEventListener('click',e=>{ const m=document.getElementById('dlMenu'); if(m && !m.hidden && !e.target.closest('.dd')){ m.hidden=true; document.getElementById('dlBtn').setAttribute('aria-expanded','false'); } });
 function csvCell(v){ v=v==null?'':String(v); return /[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
 function exportCsv(withData){
@@ -856,7 +882,7 @@ function applyScope(s){
     bar.style.display = ''; bar.style.color = GROUPS[SCOPE].c;
     bar.innerHTML = `🔒 <span>แอดมิน <b>${SCOPE}</b> — เห็นและจัดการได้เฉพาะ<b>คนขับกลุ่ม ${GROUPS[SCOPE].label}</b></span>`;
   } else bar.style.display = 'none';
-  const imp = document.querySelector('label[for="impFile"]'); if (imp) imp.style.display = SCOPE ? 'none' : '';
+  const imp = document.getElementById('impBtn'); if (imp && SCOPE) imp.hidden = true;
 }
 async function loadUsers(){
   const url = GAS_URL + '?action=getUsers&userId=' + encodeURIComponent(MY_UID) + '&t=' + Date.now();
@@ -877,6 +903,7 @@ async function loadUsers(){
   applyScope(data.scope);
   if(filterRole==='pre' && !PREREGS.length) filterRole='all';
   hideGate();
+  showDevTools();
   render();
 }
 
