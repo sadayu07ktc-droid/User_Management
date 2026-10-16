@@ -429,9 +429,9 @@ async function toggleUser(btn, uid){
   const knob = btn.querySelector('.knob');
   btn.disabled = true; knob.classList.add('spin');
   try{
-    const res = await fetch(GAS_URL, {
+    const res = await fetch(umWriteUrl(), {
       method:'POST',
-      headers:{ 'Content-Type':'text/plain;charset=utf-8' },  // กัน CORS preflight ของ GAS
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },  // กัน CORS preflight
       body: JSON.stringify({ action:'setUserStatus', userId:MY_UID, targetUid:uid, status:newStatus })
     });
     const data = await res.json();
@@ -489,10 +489,14 @@ async function ask(o){
 
 /* ═════════ เรียก backend ═════════
  * GAS บางทีตอบหน้า HTML แทน JSON (มักหลัง deploy) → อ่านอย่างเดียว = ลองซ้ำได้ · เขียน = ห้ามยิงซ้ำ ให้โหลดข้อมูลมาตรวจ */
+/* ✍️ ปุ่มบันทึก (เปิด/ปิดผู้ใช้ · เพิ่ม · นำเข้า · ยกเลิกรอผูก) → Edge user-admin (2026-10-16 · ผลตรง GAS)
+ *   ฉุกเฉิน: เปิดลิงก์ด้วย ?umw=gas = กลับไปใช้ GAS (จำในเครื่อง) · ?umw=edge = กลับมาใช้ Edge */
+(function(){ try{ const q=new URLSearchParams(location.search).get('umw'); if(q==='gas') localStorage.setItem('ssb_um_writes','gas'); if(q==='edge') localStorage.removeItem('ssb_um_writes'); }catch(e){} })();
+function umWriteUrl(){ try{ return localStorage.getItem('ssb_um_writes')==='gas' ? GAS_URL : USER_ADMIN_URL; }catch(e){ return USER_ADMIN_URL; } }
 async function postJson(body, canRetry){
   for(let n=1;;n++){
     try{
-      const r = await fetch(GAS_URL,{ method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(Object.assign({userId:MY_UID},body)) });
+      const r = await fetch(umWriteUrl(),{ method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(Object.assign({userId:MY_UID},body)) });
       const t = await r.text();
       try{ return JSON.parse(t); }catch(e){ if(!canRetry || n>=3) return { ok:false, unsure:!canRetry, error:'เซิร์ฟเวอร์ตอบกลับผิดรูปแบบ' }; }
     }catch(e){ if(!canRetry || n>=3) return { ok:false, unsure:!canRetry, error:'เชื่อมต่อไม่ได้' }; }
