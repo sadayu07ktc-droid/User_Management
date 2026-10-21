@@ -297,6 +297,7 @@ const ATYPES = {
 const ATYPE_ORDER = ['ADMIN','ADMIN_BULK','ADMIN_PK','MANAGER','EXECUTIVE','ACC_BULK','YARD_BULK'];
 const atypeOf = u => ATYPES[u.adminType] ? u.adminType : '';
 const typeBadge = u => { const k = atypeOf(u); return k ? `<span class="gbadge" style="color:${ATYPES[k].c}">${ATYPES[k].label}<span class="tc">${k}</span></span>` : ''; };
+let DRV_SCOPE = '';   // 'ไร่' = แอดมินรถไร่ เห็นคนขับเฉพาะกลุ่มไร่ (บทบาทอื่นเห็นปกติ · server กรองให้แล้ว) 2026-10-21
 let SCOPE = '';   // '' = เห็นทั้งหมด · 'Bulk'/'Packing' = แอดมินกลุ่ม เห็นเฉพาะคนขับกลุ่มนั้น (server กรองให้แล้ว)
 let q = '';
 
@@ -311,7 +312,7 @@ function renderTabs(){
   const counts = { all: USERS.length, pre: PREREGS.length };
   ROLE_ORDER.forEach(r => counts[r] = USERS.filter(u => roleOf(u)===r).length);
   const defs = SCOPE ? [['Driver', ROLES.Driver.label+' · '+GROUPS[SCOPE].label, ROLES.Driver.c]]
-                     : [['all','ทั้งหมด',null], ...ROLE_ORDER.map(r=>[r, ROLES[r].label, ROLES[r].c])];
+                     : [['all','ทั้งหมด',null], ...ROLE_ORDER.map(r=>[r, ROLES[r].label + (r==='Driver' && DRV_SCOPE ? ' · '+GROUPS[DRV_SCOPE].label : ''), ROLES[r].c])];
   if(PREREGS.length || filterRole==='pre') defs.push(['pre','⏳ รอผูก LINE',null]);
   document.getElementById('tabs').innerHTML = defs.map(([k,label,col]) => `
     <button class="tab ${filterRole===k?'on':''}" onclick="setRole('${k}')">
@@ -337,7 +338,7 @@ function renderTabs(){
       .map(([k,label,n]) => `<button class="stab ${filterGroup===k?'on':''}" onclick="setGroup('${k}')">${label}<span class="n">${n}</span></button>`).join('');
     return;
   }
-  if (filterRole !== 'Driver' || SCOPE) { sub.innerHTML = ''; return; }
+  if (filterRole !== 'Driver' || SCOPE || DRV_SCOPE) { sub.innerHTML = ''; return; }
   const drv = USERS.filter(u => roleOf(u) === 'Driver');
   sub.innerHTML = [['all','ทั้งหมด', drv.length]].concat(GROUP_ORDER.map(g => [g, GROUPS[g].label, drv.filter(u => groupOf(u) === g).length]))
     .map(([k,label,n]) => `<button class="stab ${filterGroup===k?'on':''}" onclick="setGroup('${k}')">${label}<span class="n">${n}</span></button>`).join('');
@@ -508,7 +509,7 @@ async function reloadQuiet(){
     try{
       const r = await (window.ssbFetch || fetch)(GAS_URL+'?action=getUsers&userId='+encodeURIComponent(MY_UID)+'&t='+Date.now());
       const d = JSON.parse(await r.text());
-      if(d && d.ok){ USERS=d.users||[]; PREREGS=d.preregs||[]; applyScope(d.scope); if(filterRole==='pre'&&!PREREGS.length) filterRole='all'; render(); return true; }
+      if(d && d.ok){ USERS=d.users||[]; PREREGS=d.preregs||[]; applyScope(d.scope, d.driverScope); if(filterRole==='pre'&&!PREREGS.length) filterRole='all'; render(); return true; }
     }catch(e){}
     await new Promise(r=>setTimeout(r,900*n));
   }
@@ -525,12 +526,12 @@ const VEH = ['4 ล้อ','6 ล้อ','10 ล้อ','พ่วง(Trailer)']
 const digits = s => String(s||'').replace(/\D/g,'');
 function openAdd(){
   const roleOpts = (SCOPE ? ['Driver'] : ROLE_ORDER).map(r=>`<option value="${r}" ${r==='Driver'?'selected':''}>${ROLES[r].label}</option>`).join('');
-  const grpOpts = (SCOPE ? [SCOPE] : GROUP_ORDER).map(g=>`<option value="${g}">${GROUPS[g].label}</option>`).join('');
+  const grpOpts = (SCOPE ? [SCOPE] : DRV_SCOPE ? [DRV_SCOPE] : GROUP_ORDER).map(g=>`<option value="${g}">${GROUPS[g].label}</option>`).join('');
   const html = `<div class="fg">
     <div class="fd"><label for="aName">ชื่อ<span class="req">* จำเป็น</span></label><input id="aName" autocomplete="off" placeholder="เช่น สมชาย ใจดี" autofocus></div>
     <div class="fd"><label for="aPhone">เบอร์โทร<span class="req">* จำเป็น</span></label><input id="aPhone" inputmode="tel" autocomplete="off" placeholder="0812345678"></div>
     <div class="fd"><label for="aRole">บทบาท<span class="req">* จำเป็น</span></label><select id="aRole" ${SCOPE?'disabled':''}>${roleOpts}</select></div>
-    <div class="fd veh"><label for="aGrp">กลุ่มงาน<span class="req">* จำเป็น</span></label><select id="aGrp" ${SCOPE?'disabled':''}>${grpOpts}</select></div>
+    <div class="fd veh"><label for="aGrp">กลุ่มงาน<span class="req">* จำเป็น</span></label><select id="aGrp" ${SCOPE||DRV_SCOPE?'disabled':''}>${grpOpts}</select></div>
     <div class="fd veh"><label for="aVeh">ประเภทรถ</label><select id="aVeh"><option value="">— เลือก —</option>${VEH.map(v=>`<option>${v}</option>`).join('')}</select></div>
     <div class="fd veh full"><label for="aPlate">ทะเบียนรถ</label><input id="aPlate" autocomplete="off" placeholder="85-4587"><div class="hint" id="aPlateHint"></div></div>
     <div class="fd full"><label for="aUid">LINE UID <span style="font-weight:400;color:var(--ink-faint)">(ถ้ามี)</span></label><input id="aUid" class="mono" autocomplete="off" spellcheck="false" placeholder="U + 32 ตัว — เว้นว่างได้"></div>
@@ -880,13 +881,18 @@ function showGate(title, sub){
 function hideGate(){ document.getElementById('gate').style.display='none'; }
 
 /* แอดมิน Bulk/Packing: ล็อกไว้ที่คนขับกลุ่มตัวเอง · ซ่อนนำเข้าไฟล์ (server ปฏิเสธอยู่แล้ว) */
-function applyScope(s){
+function applyScope(s, ds){
   SCOPE = GROUPS[s] ? s : '';
+  DRV_SCOPE = !SCOPE && GROUPS[ds] ? ds : '';
   const bar = document.getElementById('scopebar');
   if (SCOPE) {
     filterRole = filterRole==='pre' ? 'pre' : 'Driver'; filterGroup = SCOPE;
     bar.style.display = ''; bar.style.color = GROUPS[SCOPE].c;
     bar.innerHTML = `🔒 <span>แอดมิน <b>${SCOPE}</b> — เห็นและจัดการได้เฉพาะ<b>คนขับกลุ่ม ${GROUPS[SCOPE].label}</b></span>`;
+  } else if (DRV_SCOPE) {
+    if (filterRole === 'Driver') filterGroup = 'all';
+    bar.style.display = ''; bar.style.color = GROUPS[DRV_SCOPE].c;
+    bar.innerHTML = `🔒 <span><b>แอดมินรถ${DRV_SCOPE}</b> — เห็นและจัดการคนขับได้เฉพาะ<b>กลุ่ม ${GROUPS[DRV_SCOPE].label}</b> · เจ้าของสวน/ลาน/ทีมตัดเห็นปกติ</span>`;
   } else bar.style.display = 'none';
   const imp = document.getElementById('impBtn'); if (imp && SCOPE) imp.hidden = true;
 }
@@ -906,7 +912,7 @@ async function loadUsers(){
   if(!data || !data.ok){ showGate('โหลดข้อมูลไม่สำเร็จ',(data && data.error) || 'ลองรีเฟรชอีกครั้ง'); return; }
   USERS = data.users || [];
   PREREGS = data.preregs || [];
-  applyScope(data.scope);
+  applyScope(data.scope, data.driverScope);
   if(filterRole==='pre' && !PREREGS.length) filterRole='all';
   hideGate();
   showDevTools();
