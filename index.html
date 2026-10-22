@@ -6,8 +6,8 @@
 <title>ผู้ใช้งาน / สิทธิ์ · SSB</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <!-- ssbFetch: อ่านจาก Supabase Edge ก่อน พลาด → GAS (ไฟล์อยู่ repo SSB-SMART-SUPPLY-DASHBOARD) · โหลดไม่ได้ก็ใช้ fetch เดิม -->
-<script src="https://sadayu07ktc-droid.github.io/SSB-SMART-SUPPLY-DASHBOARD/ssb-read.js?v=20261007l"></script>
-<script src="https://sadayu07ktc-droid.github.io/SSB-SMART-SUPPLY-DASHBOARD/ssb-pin-gate.js?v=20261014a"></script>
+<script src="/SSB-SMART-SUPPLY-DASHBOARD/ssb-read.js?v=20261007l"></script>
+<script src="/SSB-SMART-SUPPLY-DASHBOARD/ssb-pin-gate.js?v=20261014a"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
@@ -400,8 +400,8 @@ function render(){
         ${u.extra?`<div class="extra">${esc(u.extra)}</div>`:''}
         ${r==='Driver'&&plateIssue(u)?`<div class="pwarn" title="${esc(plateIssue(u))}">⚠️ ${esc(plateIssue(u))}</div>`:''}
         <span class="rbadge" style="background:${cv(rc.bg)};color:${cv(rc.c)}"><span class="pip" style="background:${cv(rc.c)}"></span>${rc.label}</span>${r==='Driver'?`<span class="gbadge" style="color:${GROUPS[groupOf(u)].c}">${GROUPS[groupOf(u)].label}</span>`:''}${r==='Admin'?typeBadge(u):''}
-        ${r==='Owner'?`<a class="golink" href="https://sadayu07ktc-droid.github.io/SSB-SMART-SUPPLY-DASHBOARD/garden.html?uid=${encodeURIComponent(u.uid)}">🌳 ดูข้อมูลสวน ›</a>`:''}
-        ${r==='Admin'?`<a class="golink" href="https://sadayu07ktc-droid.github.io/SSB-SMART-SUPPLY-DASHBOARD/admins.html">🔑 ตั้งค่าสิทธิ์ ›</a>`:''}
+        ${r==='Owner'?`<a class="golink" href="/SSB-SMART-SUPPLY-DASHBOARD/garden.html?uid=${encodeURIComponent(u.uid)}">🌳 ดูข้อมูลสวน ›</a>`:''}
+        ${r==='Admin'?`<a class="golink" href="/SSB-SMART-SUPPLY-DASHBOARD/admins.html">🔑 ตั้งค่าสิทธิ์ ›</a>`:''}
         <div class="uid mono">${esc(u.uid||'')}</div>
       </div>
       <div class="side">
