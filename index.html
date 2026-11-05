@@ -139,6 +139,13 @@
   .mini.edit:hover{border-color:var(--pine);color:var(--pine)}
   .pwarn{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:#9A5B06;background:#FDF1DC;border:1px solid #F1D29B;padding:2px 8px;border-radius:999px;margin-top:5px}
   .pprev{font-size:12.5px;color:var(--ink-soft);margin-top:2px}
+  .nop{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);cursor:pointer}
+  .nop input{width:16px;height:16px;accent-color:var(--pine)}
+  .vac-t{font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:6px}
+  .vac-l{display:flex;flex-wrap:wrap;gap:6px;max-height:132px;overflow-y:auto}
+  .vac{font-family:inherit;font-size:12.5px;font-weight:600;color:var(--ink);background:var(--surface-2);border:1px solid var(--line-strong);border-radius:8px;padding:5px 10px;cursor:pointer;display:inline-flex;align-items:baseline;gap:6px}
+  .vac:hover{border-color:var(--pine);color:var(--pine)}
+  .vac small{font-size:11px;font-weight:400;color:var(--ink-faint)}
   .pprev b{font-family:'IBM Plex Mono',monospace;color:var(--ink);font-weight:600}
   .code{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--ink-soft);background:var(--surface-2);border:1px solid var(--line);padding:1px 7px;border-radius:6px;margin-left:6px;vertical-align:1px}
 
@@ -534,6 +541,7 @@ function openAdd(){
     <div class="fd veh"><label for="aGrp">กลุ่มงาน<span class="req">* จำเป็น</span></label><select id="aGrp" ${SCOPE||DRV_SCOPE?'disabled':''}>${grpOpts}</select></div>
     <div class="fd veh"><label for="aVeh">ประเภทรถ</label><select id="aVeh"><option value="">— เลือก —</option>${VEH.map(v=>`<option>${v}</option>`).join('')}</select></div>
     <div class="fd veh full"><label for="aPlate">ทะเบียนรถ</label><input id="aPlate" autocomplete="off" placeholder="85-4587"><div class="hint" id="aPlateHint"></div></div>
+    <div class="veh full"><div id="aVac" hidden></div></div>
     <div class="fd full"><label for="aUid">LINE UID <span style="font-weight:400;color:var(--ink-faint)">(ถ้ามี)</span></label><input id="aUid" class="mono" autocomplete="off" spellcheck="false" placeholder="U + 32 ตัว — เว้นว่างได้"></div>
     <div class="full"><div class="modebox" id="aMode"></div></div>
   </div>`;
@@ -558,6 +566,8 @@ function openAdd(){
     ['aRole','aVeh','aUid'].forEach(id=>$(id).addEventListener('input',sync));
     $('aRole').addEventListener('change',sync); $('aVeh').addEventListener('change',sync);
     sync();
+    const vac=()=>loadVacant($('aVac'), $('aGrp').value, v=>{ if(VEH.indexOf(v.type)>=0) $('aVeh').value=v.type; $('aPlate').value=plateParts(v.plate).join(','); sync(); });
+    $('aGrp').addEventListener('change',vac); vac();
   }});
 }
 async function saveAdd(ov, btn){
@@ -580,6 +590,7 @@ async function saveAdd(ov, btn){
     reloadQuiet(); return true;
   }
   if(r && r.unsure){ toast('ไม่แน่ใจว่าบันทึกสำเร็จ — กำลังโหลดรายชื่อมาตรวจ', true); reloadQuiet(); return true; }
+  if(r && r.field==='plate') return bad('aPlate', r.error);
   toast((r && r.error) || 'บันทึกไม่สำเร็จ', true); return false;
 }
 
@@ -602,7 +613,33 @@ function plateIssue(u){
   if(tr && parts.length!==2) return 'รถพ่วงต้องมีทะเบียน หัว + ลูก';
   if(!tr && parts.length!==1) return 'มี '+parts.length+' ป้าย แต่ประเภทรถเป็น '+vehOf(u);
   if(parts.some(p=>fmtPlate(p)!==p || !plateOk(p))) return 'รูปแบบทะเบียนไม่ถูกต้อง';
+  const dup = plateOwners(u);
+  if(dup.length) return 'ทะเบียนซ้ำกับ '+dup.join(', ');
   return '';
+}
+/* คนขับคนอื่นที่ถือป้ายเดียวกัน · จำผลไว้จนกว่า USERS จะโหลดใหม่ */
+let _plFor=null, _plMap={};
+const plateKey = s => String(s||'').replace(/[\s-]/g,'');
+function plateOwners(u){
+  if(_plFor!==USERS){ _plFor=USERS; _plMap={};
+    USERS.filter(x=>x.role==='Driver').forEach(x=>plateParts(x.plate).forEach(p=>{ const k=plateKey(p); (_plMap[k]=_plMap[k]||[]).push(x); })); }
+  const out=[];
+  plateParts(u.plate).forEach(p=>(_plMap[plateKey(p)]||[]).forEach(x=>{ if(x.uid!==u.uid && out.indexOf(x.name)<0) out.push(x.name); }));
+  return out;
+}
+/* ปุ่มรถว่าง (เฉพาะกลุ่ม Packing): ถามเซิร์ฟเวอร์ทุกครั้งที่เปิดฟอร์ม กดแล้วเติมทะเบียน+ประเภทรถ */
+async function loadVacant(box, group, onPick){
+  if(group!=='Packing'){ box.hidden=true; box.innerHTML=''; return; }
+  box.hidden=false; box.innerHTML='<div class="vac-t">กำลังโหลดรถว่าง…</div>';
+  let r=null;
+  try{ const res=await fetch(USER_ADMIN_URL,{ method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify({ action:'vacantVehicles', userId:MY_UID, group }) }); r=JSON.parse(await res.text()); }catch(e){}
+  if(!box.isConnected) return;
+  if(!r||!r.ok){ box.innerHTML='<div class="vac-t">โหลดรายการรถว่างไม่ได้ — กรอกทะเบียนเองได้</div>'; return; }
+  const list=r.vacant||[];
+  if(!list.length){ box.innerHTML='<div class="vac-t">รถ Packing มีคนขับครบทุกคันแล้ว</div>'; return; }
+  box.innerHTML='<div class="vac-t">รถว่าง Packing (ยังไม่มีคนขับ) · กดเพื่อเลือก</div><div class="vac-l">'
+    +list.map((v,i)=>`<button type="button" class="vac" data-i="${i}">${esc(v.plate.replace(/\s*,\s*/,' + '))}<small>${esc(v.type||'')}</small></button>`).join('')+'</div>';
+  box.querySelectorAll('.vac').forEach(b=>b.addEventListener('click',()=>onPick(list[+b.dataset.i])));
 }
 function openEditDriver(uid){
   const u = USERS.find(x=>x.uid===uid); if(!u) return;
@@ -612,6 +649,8 @@ function openEditDriver(uid){
     <div class="fd full"><label for="eVeh">ประเภทรถ<span class="req">* จำเป็น</span></label><select id="eVeh"><option value="">— เลือก —</option>${VEH.map(v=>`<option ${v===cur?'selected':''}>${v}</option>`).join('')}</select></div>
     <div class="fd" id="eHeadBox"><label for="eHead" id="eHeadLbl">ทะเบียนรถ<span class="req">* จำเป็น</span></label><input id="eHead" autocomplete="off" placeholder="85-4587" value="${esc(parts[0]||'')}"><div class="hint" id="eHeadHint"></div></div>
     <div class="fd" id="eTailBox"><label for="eTail">ทะเบียนลูก (หาง)<span class="req">* จำเป็น</span></label><input id="eTail" autocomplete="off" placeholder="85-4586" value="${esc(parts.slice(1).join(' / '))}"></div>
+    <div class="full" id="eVac" hidden></div>
+    <label class="full nop"><input type="checkbox" id="eNoPlate" ${parts.length?'':'checked'}> ยังไม่มีรถ / ปล่อยรถให้คนอื่น</label>
     <div class="full"><div class="pprev" id="ePrev"></div>${plateIssue(u)?`<div class="pwarn">⚠️ ตอนนี้: ${esc(plateIssue(u))}</div>`:''}</div>
   </div>`;
   return modal({ icon:'✏️', title:'แก้ไขคนขับ', sub:(u.code?u.code+' · ':'')+'เปลี่ยนเฉพาะข้อมูลคนขับ — ออเดอร์ที่ผ่านมาไม่เปลี่ยน', html, actions:[
@@ -620,8 +659,10 @@ function openEditDriver(uid){
   ], onOpen:ov=>{
     const $=id=>ov.querySelector('#'+id);
     const sync=()=>{
-      const tr = $('eVeh').value==='พ่วง(Trailer)';
-      $('eTailBox').hidden = !tr;
+      const tr = $('eVeh').value==='พ่วง(Trailer)', none = $('eNoPlate').checked;
+      $('eHeadBox').hidden = none;
+      $('eTailBox').hidden = !tr || none;
+      if(none){ $('ePrev').innerHTML='จะบันทึกเป็น: <b>ไม่มีรถประจำ</b> · ทะเบียนนี้จะว่างให้คนอื่นใช้'; return; }
       $('eHeadLbl').firstChild.textContent = tr ? 'ทะเบียนหัว' : 'ทะเบียนรถ';
       $('eHeadBox').classList.toggle('full', !tr);
       $('eHeadHint').innerHTML = tr
@@ -632,21 +673,26 @@ function openEditDriver(uid){
       $('ePrev').innerHTML = (val ? 'จะบันทึกเป็น: <b>'+esc(val)+'</b>' : '')
         + (!tr && t ? '<div class="pwarn">⚠️ ทะเบียนลูก '+esc(t)+' จะไม่ถูกบันทึก — ถ้าเป็นรถพ่วงให้เลือกประเภท พ่วง(Trailer)</div>' : '');
     };
-    ['eVeh','eHead','eTail'].forEach(id=>{ $(id).addEventListener('input',sync); $(id).addEventListener('change',sync); });
+    ['eVeh','eHead','eTail','eNoPlate'].forEach(id=>{ $(id).addEventListener('input',sync); $(id).addEventListener('change',sync); });
     sync();
+    loadVacant($('eVac'), groupOf(u), v=>{
+      const ps=plateParts(v.plate); $('eNoPlate').checked=false;
+      if(VEH.indexOf(v.type)>=0) $('eVeh').value=v.type;
+      $('eHead').value=ps[0]||''; $('eTail').value=ps[1]||''; sync();
+    });
   }});
 }
 async function saveEditDriver(ov, btn, u){
   const $=id=>ov.querySelector('#'+id);
   ov.querySelectorAll('.bad').forEach(x=>x.classList.remove('bad'));
   const bad=(id,msg)=>{ $(id).classList.add('bad'); $(id).focus(); toast(msg,true); return false; };
-  const name=$('eName').value.trim(), veh=$('eVeh').value, tr=veh==='พ่วง(Trailer)';
+  const name=$('eName').value.trim(), veh=$('eVeh').value, tr=veh==='พ่วง(Trailer)', none=$('eNoPlate').checked;
   const head=fmtPlate($('eHead').value), tail=fmtPlate($('eTail').value);
   if(!name) return bad('eName','กรุณากรอกชื่อคนขับ');
-  if(!veh) return bad('eVeh','เลือกประเภทรถ');
-  if(!head) return bad('eHead', tr?'กรอกทะเบียนหัว':'กรอกทะเบียนรถ');
-  if(/[,/]/.test(head) || !plateOk(head)) return bad('eHead','ทะเบียนไม่ถูกต้อง (เช่น 85-4587 หรือ ยค-9996)');
-  if(tr){
+  if(!veh && !none) return bad('eVeh','เลือกประเภทรถ');
+  if(!none && !head) return bad('eHead', tr?'กรอกทะเบียนหัว':'กรอกทะเบียนรถ');
+  if(!none && (/[,/]/.test(head) || !plateOk(head))) return bad('eHead','ทะเบียนไม่ถูกต้อง (เช่น 85-4587 หรือ ยค-9996)');
+  if(tr && !none){
     if(!tail) return bad('eTail','รถพ่วงต้องกรอกทะเบียนลูกด้วย');
     if(/[,/]/.test(tail) || !plateOk(tail)) return bad('eTail','ทะเบียนลูกไม่ถูกต้อง (ใส่ป้ายเดียว)');
     if(head.replace(/[\s-]/g,'')===tail.replace(/[\s-]/g,'')) return bad('eTail','ทะเบียนหัวกับลูกต้องไม่ซ้ำกัน');
@@ -655,12 +701,12 @@ async function saveEditDriver(ov, btn, u){
   let r;
   try{
     const res = await fetch(USER_ADMIN_URL,{ method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body:JSON.stringify({ action:'updateDriver', userId:MY_UID, targetUid:u.uid, name, vehicleType:veh, plate: tr?[head,tail]:[head] }) });
+      body:JSON.stringify({ action:'updateDriver', userId:MY_UID, targetUid:u.uid, name, vehicleType:veh, noPlate:none, plate: none?[]:(tr?[head,tail]:[head]) }) });
     r = JSON.parse(await res.text());
   }catch(e){ r = { ok:false, unsure:true }; }
   busy(btn,false); delete ov.dataset.lock;
   if(r && r.ok){
-    toast(r.unchanged ? 'ไม่มีอะไรเปลี่ยน' : '✅ บันทึก '+r.name+' · '+r.plate+' · '+r.vehicleType+(r.sharedWith&&r.sharedWith.length?' (ทะเบียนนี้ใช้ร่วมกับ '+r.sharedWith.join(', ')+')':''));
+    toast(r.unchanged ? 'ไม่มีอะไรเปลี่ยน' : '✅ บันทึก '+r.name+' · '+(r.plate||'ไม่มีรถประจำ')+(r.vehicleType?' · '+r.vehicleType:''));
     reloadQuiet(); return true;
   }
   if(r && r.unsure){ toast('ไม่แน่ใจว่าบันทึกสำเร็จ — กำลังโหลดรายชื่อมาตรวจ', true); reloadQuiet(); return true; }
