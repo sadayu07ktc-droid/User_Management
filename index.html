@@ -61,6 +61,8 @@
   .subtabs:empty{display:none}
   .vtabs{margin-top:-8px}   /* ชิปประเภทรถ (แถวที่ 3 ใต้กลุ่มงาน) · 2026-10-09 */
   .vtabs .stab.on{background:var(--ink,#15241D);border-color:var(--ink,#15241D);color:var(--surface,#fff)}
+  .btabs{margin-top:-8px}   /* ชิปรูปแบบรถ (แถวที่ 4 ใต้ประเภทรถ) · 2026-11-05 */
+  .btabs .stab.on{background:var(--pine);border-color:var(--pine);color:#fff}
   .stab{font-family:inherit;font-size:12px;font-weight:500;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-soft);padding:4px 11px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
   .stab.on{background:var(--r-driver-bg);border-color:var(--r-driver);color:var(--r-driver)}
   .stab .n{font-family:'IBM Plex Mono',monospace;font-size:11px;opacity:.75}
@@ -250,6 +252,7 @@
   <div class="tabs" id="tabs"></div>
   <div class="subtabs" id="subtabs"></div>
   <div class="subtabs vtabs" id="vtabs"></div>
+  <div class="subtabs btabs" id="btabs"></div>
   <div class="list" id="list"></div>
 </main>
 
@@ -284,6 +287,7 @@ let PREREGS = [];   // ลงล่วงหน้าด้วยเบอร์
 let MY_UID = '';
 let filterRole = 'all';
 let filterVeh = 'all';     // ประเภทรถคนขับ (แถวที่ 3 · ใช้เมื่อ filterRole==='Driver') · 2026-10-09
+let filterBody = 'all';    // รูปแบบรถ (แถวที่ 4 · 'all' = ทุกแบบ · '' = ไม่มีข้อมูลรถ) · 2026-11-05
 const VEH_ORDER = ['4 ล้อ','6 ล้อ','10 ล้อ','พ่วง(Trailer)'];
 const vehOf = u => { const s = String(u.vehicleType||''); return /พ่วง|trailer|CPO/i.test(s) ? 'พ่วง(Trailer)' : /10/.test(s) ? '10 ล้อ' : /6/.test(s) ? '6 ล้อ' : /4/.test(s) ? '4 ล้อ' : 'ไม่ระบุ'; };
 let filterGroup = 'all';   // กลุ่มงานคนขับ (ใช้เมื่อ filterRole==='Driver')
@@ -335,7 +339,9 @@ function renderTabs(){
     vt.innerHTML = [['all','🚚 ทุกประเภทรถ', pool.length]].concat(VEH_ORDER.map(k => [k, k, pool.filter(u => vehOf(u) === k).length]))
       .concat(none ? [['ไม่ระบุ','ไม่ระบุ', none]] : [])
       .map(([k,label,n]) => `<button class="stab ${filterVeh===k?'on':''}" onclick="setVeh('${k}')">${label}<span class="n">${n}</span></button>`).join('');
-  } else vt.innerHTML = '';
+    loadBodies();
+    renderBodyTabs(pool);
+  } else { vt.innerHTML = ''; document.getElementById('btabs').innerHTML = ''; }
   if (filterRole === 'Admin') {   // ชิปย่อยประเภทแอดมิน
     const adm = USERS.filter(u => roleOf(u) === 'Admin');
     const ks = ATYPE_ORDER.filter(k => adm.some(u => atypeOf(u) === k));
@@ -350,6 +356,38 @@ function renderTabs(){
   sub.innerHTML = [['all','ทั้งหมด', drv.length]].concat(GROUP_ORDER.map(g => [g, GROUPS[g].label, drv.filter(u => groupOf(u) === g).length]))
     .map(([k,label,n]) => `<button class="stab ${filterGroup===k?'on':''}" onclick="setGroup('${k}')">${label}<span class="n">${n}</span></button>`).join('');
 }
+
+/* ชิปรูปแบบรถ (คุณน้อง 5 พ.ย.: 6 ล้อมีแบบไหน พ่วงมีอะไร) · โผล่เมื่อเลือกประเภทรถแล้ว · ดูจากทะเบียนหัวในตารางรถ (body_type)
+   รถที่ไม่อยู่ในตาราง = "ไม่มีข้อมูลรถ" · ตอนนี้มีข้อมูลเฉพาะรถ Packing · โหลดไม่ได้ก็ไม่ขึ้นแถวนี้ หน้าอื่นใช้ได้ตามเดิม */
+let BODY = null, _bodyBusy = false, BODY_KEYS = [];
+const bodyOf = u => BODY ? (BODY[plateKey(plateParts(u.plate)[0])] || '') : '';
+const bodyLabel = s => s.replace(/^\d+\s*ล้อ\s+/, '');
+async function loadBodies(){
+  if(BODY || _bodyBusy) return;
+  _bodyBusy = true;
+  try{
+    const r = await (window.ssbFetch || fetch)(GAS_URL+'?action=getCostBase&userId='+encodeURIComponent(MY_UID)+'&t='+Date.now());
+    const d = await r.json();
+    if(!d || !d.ok) return;
+    const m = {};
+    (d.vehicles||[]).forEach(v=>{ if(v.body_type && v.unit_kind!=='หาง' && v.status!=='เลิกใช้') m[plateKey(plateParts(v.plate)[0])] = v.body_type; });
+    BODY = m;
+    if(filterRole==='Driver' && filterVeh!=='all') render();
+  }catch(e){ console.warn('โหลดรูปแบบรถไม่ได้', e); }
+}
+function renderBodyTabs(pool){
+  const bt = document.getElementById('btabs');
+  if(!BODY || filterVeh==='all' || filterVeh==='ไม่ระบุ'){ bt.innerHTML = ''; return; }
+  const inVeh = pool.filter(u => vehOf(u)===filterVeh), cnt = {};
+  inVeh.forEach(u => { const b = bodyOf(u); cnt[b] = (cnt[b]||0)+1; });
+  BODY_KEYS = Object.keys(cnt).filter(Boolean).sort((a,b) => cnt[b]-cnt[a] || a.localeCompare(b,'th'));
+  if(!BODY_KEYS.length){ bt.innerHTML = ''; return; }
+  const chip = (arg,on,label,n) => `<button class="stab ${on?'on':''}" onclick="setBody(${arg})">${esc(label)}<span class="n">${n}</span></button>`;
+  bt.innerHTML = chip(-1, filterBody==='all', 'ทุกแบบ', inVeh.length)
+    + BODY_KEYS.map((k,i) => chip(i, filterBody===k, bodyLabel(k), cnt[k])).join('')
+    + (cnt[''] ? chip(-2, filterBody==='', 'ไม่มีข้อมูลรถ', cnt['']) : '');
+}
+function setBody(i){ filterBody = i===-1 ? 'all' : i===-2 ? '' : BODY_KEYS[i]; render(); }
 
 /* การ์ดคนที่แอดมินลงไว้ล่วงหน้า (ยังไม่มี LINE UID) — สมัครใน LINE ด้วยเบอร์นี้ = ผูก + Active อัตโนมัติ */
 function renderPre(){
@@ -381,6 +419,7 @@ function matches(u){
   if(filterRole!=='all' && roleOf(u)!==filterRole) return false;
   if(filterRole==='Driver' && filterGroup!=='all' && groupOf(u)!==filterGroup) return false;
   if(filterRole==='Driver' && filterVeh!=='all' && vehOf(u)!==filterVeh) return false;
+  if(filterRole==='Driver' && filterVeh!=='all' && filterBody!=='all' && bodyOf(u)!==filterBody) return false;
   if(filterRole==='Admin' && filterGroup!=='all' && (atypeOf(u)||'none')!==filterGroup) return false;
   if(!q) return true;
   const hay = ((u.name||'')+' '+(u.phone||'')+' '+(u.uid||'')+' '+(u.extra||'')).toLowerCase();
@@ -422,9 +461,9 @@ function render(){
   }).join('');
 }
 
-function setRole(r){ filterRole = r; filterGroup = SCOPE || 'all'; filterVeh = 'all'; render(); }
-function setVeh(v){ filterVeh = v; render(); }
-function setGroup(g){ filterGroup = g; render(); }
+function setRole(r){ filterRole = r; filterGroup = SCOPE || 'all'; filterVeh = 'all'; filterBody = 'all'; render(); }
+function setVeh(v){ filterVeh = v; filterBody = 'all'; render(); }
+function setGroup(g){ filterGroup = g; filterBody = 'all'; render(); }
 
 async function toggleUser(btn, uid){
   const u = USERS.find(x=>x.uid===uid); if(!u) return;
