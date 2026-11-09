@@ -141,6 +141,13 @@
   .mini.edit:hover{border-color:var(--pine);color:var(--pine)}
   .pwarn{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:#9A5B06;background:#FDF1DC;border:1px solid #F1D29B;padding:2px 8px;border-radius:999px;margin-top:5px}
   .pprev{font-size:12.5px;color:var(--ink-soft);margin-top:2px}
+  /* 📍 พิกัดลานเท (2026-11-09) */
+  .rloc{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:5px;font-size:12px;color:var(--ink-soft)}
+  .rloc a{font-family:'IBM Plex Mono',monospace;color:var(--pine);font-weight:600;text-decoration:none;border-bottom:1px dashed currentColor}
+  .rloc .dtc{font-size:10.5px;font-weight:600;color:var(--ink-soft);background:var(--surface-2);border:1px solid var(--line-strong);padding:1px 7px;border-radius:999px}
+  .rl-map{display:block;width:100%;height:190px;border:1px solid var(--line-strong);border-radius:12px;margin-top:8px;background:var(--surface-2)}
+  .rl-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .rl-map[hidden],.rl-row [hidden]{display:none}
   .nop{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);cursor:pointer}
   .nop input{width:16px;height:16px;accent-color:var(--pine)}
   .vac-t{font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:6px}
@@ -445,6 +452,7 @@ function render(){
         <div class="line mono">${esc(String(u.phone||'—').replace(/^'/,''))}</div>
         ${u.extra?`<div class="extra">${esc(u.extra)}</div>`:''}
         ${r==='Driver'&&plateIssue(u)?`<div class="pwarn" title="${esc(plateIssue(u))}">⚠️ ${esc(plateIssue(u))}</div>`:''}
+        ${r==='Ramp'&&u.rampCode?rampLocLine(u):''}
         <span class="rbadge" style="background:${cv(rc.bg)};color:${cv(rc.c)}"><span class="pip" style="background:${cv(rc.c)}"></span>${rc.label}</span>${r==='Driver'?`<span class="gbadge" style="color:${GROUPS[groupOf(u)].c}">${GROUPS[groupOf(u)].label}</span>`:''}${r==='Admin'?typeBadge(u):''}
         ${r==='Owner'?`<a class="golink" href="/SSB-SMART-SUPPLY-DASHBOARD/garden.html?uid=${encodeURIComponent(u.uid)}">🌳 ดูข้อมูลสวน ›</a>`:''}
         ${r==='Admin'?`<a class="golink" href="/SSB-SMART-SUPPLY-DASHBOARD/admins.html">🔑 ตั้งค่าสิทธิ์ ›</a>`:''}
@@ -456,6 +464,7 @@ function render(){
           <span class="knob"></span>
         </button>
         ${r==='Driver'?`<button class="mini edit" type="button" onclick="openEditDriver('${esc(u.uid)}')">✏️ แก้ไข</button>`:''}
+        ${r==='Ramp'&&u.rampCode?`<button class="mini edit" type="button" onclick="openRampLoc('${esc(u.uid)}')">📍 แก้พิกัด</button>`:''}
       </div>
     </div>`;
   }).join('');
@@ -751,6 +760,81 @@ async function saveEditDriver(ov, btn, u){
   if(r && r.unsure){ toast('ไม่แน่ใจว่าบันทึกสำเร็จ — กำลังโหลดรายชื่อมาตรวจ', true); reloadQuiet(); return true; }
   const map={ name:'eName', vehicleType:'eVeh', plate:'eHead', plateHead:'eHead', plateTail:'eTail' };
   if(r && map[r.field]) return bad(map[r.field], r.error);
+  toast((r && r.error) || 'บันทึกไม่สำเร็จ', true); return false;
+}
+
+/* ═════════ 📍 พิกัดลานเท (Edge garden-admin saveRampLoc · 2026-11-09) ═════════
+ * เก็บเป็นตัวเลข "lat, lng" เสมอ · วางลิงก์ Google Maps ได้ (เซิร์ฟเวอร์แปลงให้)
+ * ลงเวลาอัตโนมัติของคนขับใช้จุดนี้ รัศมี 300 ม. */
+const GARDEN_ADMIN_URL = 'https://abihhdjcrbvwlkzwvjio.supabase.co/functions/v1/garden-admin';
+const mapUrl = ll => 'https://maps.google.com/?q='+encodeURIComponent(String(ll).replace(/\s+/g,''));
+function rampLocLine(u){
+  const isLink = /^https?:\/\//i.test(u.loc||'');
+  if(!u.loc) return `<div class="pwarn">📍 ยังไม่มีพิกัด — กด 📍 แก้พิกัด</div>`;
+  if(!u.latlng) return `<div class="pwarn" title="${esc(u.loc)}">📍 พิกัดอ่านไม่ได้ — กด 📍 แก้พิกัด</div>`;
+  const short = u.latlng.split(',').map(x=>{ const n=parseFloat(x); return isNaN(n)?x.trim():String(+n.toFixed(6)); }).join(', ');
+  return `<div class="rloc">📍 <a href="${mapUrl(u.latlng)}" target="_blank" rel="noopener" title="${esc(u.latlng)}">${esc(short)}</a>`
+    + (u.dtcPin?`<span class="dtc" title="ผูกหมุด DTC แล้ว">DTC · ${esc(u.dtcPin)}</span>`:'')
+    + (isLink?`<span class="pwarn" style="margin:0">ยังเก็บเป็นลิงก์ — กดแก้พิกัดแล้วบันทึกเพื่อแปลงเป็นตัวเลข</span>`:'')
+    + `</div>`;
+}
+function openRampLoc(uid){
+  const u = USERS.find(x=>x.uid===uid); if(!u||!u.rampCode) return;
+  const html = `<div class="fg">
+    <div class="fd full"><label for="rlIn">พิกัด (lat, lng)<span class="req">* จำเป็น</span></label>
+      <input id="rlIn" autocomplete="off" inputmode="text" placeholder="13.157683, 101.334637" value="${esc(u.latlng||u.loc||'')}">
+      <div class="hint">พิมพ์ตัวเลข เช่น <b>13.157683, 101.334637</b> หรือวางลิงก์ Google Maps ก็ได้ ระบบแปลงเป็นตัวเลขให้</div>
+      <div class="rl-row"><button type="button" class="mini edit" id="rlGps">📡 ใช้ตำแหน่งที่ยืนอยู่ตอนนี้</button><a class="golink" id="rlOpen" style="margin:0" target="_blank" rel="noopener">เปิดใน Google Maps ›</a></div>
+      <iframe class="rl-map" id="rlMap" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="แผนที่ตัวอย่าง"></iframe>
+    </div>
+    <div class="fd full"><div class="pprev" id="rlPrev"></div>
+      <div class="hint">คนขับลงเวลาถึงลานอัตโนมัติเมื่อเข้าใกล้จุดนี้ไม่เกิน <b>300 ม.</b> — ปักให้ตรงจุดเทปาล์ม</div>
+      ${u.dtcPin?`<div class="hint">ผูกหมุด DTC "${esc(u.dtcPin)}" ไว้ — แก้พิกัดที่นี่ไม่ลบการผูกหมุด</div>`:''}</div>
+  </div>`;
+  return modal({ icon:'📍', title:'พิกัด '+(u.extra||'').replace(/^🏭\s*/,''), sub:u.rampCode+' · '+(u.name||''), html, actions:[
+    {text:'ยกเลิก', val:null, cls:'ghost'},
+    {text:'บันทึกพิกัด', val:true, cls:'pri', before:(ov,btn)=>saveRampLoc(ov,btn,u)}
+  ], onOpen:ov=>{
+    const $=id=>ov.querySelector('#'+id);
+    let last='';
+    const sync=()=>{
+      const s=$('rlIn').value.trim(), m=s.match(/(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/);
+      const ll = m ? m[1]+', '+m[2] : '';
+      $('rlOpen').hidden = !ll; if(ll) $('rlOpen').href = mapUrl(ll);
+      const wasLink = /^https?:/i.test(u.loc||'');
+      $('rlPrev').innerHTML = ll ? (ll===u.latlng ? (wasLink ? 'จะแปลงลิงก์เดิมเป็นตัวเลข: <b>'+esc(ll)+'</b>' : 'พิกัดเดิม (ยังไม่เปลี่ยน): <b>'+esc(ll)+'</b>')
+          : 'จะบันทึกเป็น: <b>'+esc(ll)+'</b>'+(u.latlng?' · เดิม '+esc(u.latlng):''))
+        : (/^https?:\/\//i.test(s) ? 'ลิงก์ — ระบบจะแปลงเป็นตัวเลขตอนบันทึก' : '');
+      $('rlMap').hidden = !ll;
+      if(ll && ll!==last){ last=ll; $('rlMap').src='https://maps.google.com/maps?q='+encodeURIComponent(ll.replace(/\s+/g,''))+'&z=16&output=embed'; }
+    };
+    $('rlIn').addEventListener('input',sync); sync();
+    $('rlGps').addEventListener('click',()=>{
+      if(!navigator.geolocation){ toast('เครื่องนี้หาตำแหน่งไม่ได้', true); return; }
+      const b=$('rlGps'); busy(b,true,'กำลังหาตำแหน่ง');
+      navigator.geolocation.getCurrentPosition(p=>{ busy(b,false);
+        $('rlIn').value=p.coords.latitude.toFixed(6)+', '+p.coords.longitude.toFixed(6); sync();
+        toast('ได้ตำแหน่งแล้ว (คลาดเคลื่อน ~'+Math.round(p.coords.accuracy)+' ม.) — ตรวจบนแผนที่ก่อนบันทึก');
+      }, e=>{ busy(b,false); toast('หาตำแหน่งไม่ได้ — อนุญาตให้เข้าถึงตำแหน่ง หรือพิมพ์พิกัดเอง', true); }, { enableHighAccuracy:true, timeout:15000, maximumAge:0 });
+    });
+  }});
+}
+async function saveRampLoc(ov, btn, u){
+  const inp = ov.querySelector('#rlIn'); inp.classList.remove('bad');
+  const loc = inp.value.trim();
+  if(!loc){ inp.classList.add('bad'); inp.focus(); toast('กรอกพิกัด หรือวางลิงก์ Google Maps', true); return false; }
+  ov.dataset.lock='1'; busy(btn,true,'กำลังบันทึก');
+  let r;
+  try{
+    const res = await fetch(GARDEN_ADMIN_URL,{ method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({ action:'saveRampLoc', userId:MY_UID, code:u.rampCode, loc }) });
+    r = JSON.parse(await res.text());
+  }catch(e){ r = { ok:false, unsure:true }; }
+  busy(btn,false); delete ov.dataset.lock;
+  if(r && r.ok){ toast('✅ บันทึกพิกัด '+(r.name||u.rampCode)+' · '+r.loc); reloadQuiet(); return true; }
+  if(r && r.unsure){ toast('ไม่แน่ใจว่าบันทึกสำเร็จ — กำลังโหลดรายชื่อมาตรวจ', true); reloadQuiet(); return true; }
+  if(r && r.denied){ toast('ไม่มีสิทธิ์แก้พิกัด (เฉพาะแอดมิน)', true); return false; }
+  inp.classList.add('bad'); inp.focus();
   toast((r && r.error) || 'บันทึกไม่สำเร็จ', true); return false;
 }
 
