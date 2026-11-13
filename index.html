@@ -139,6 +139,14 @@
   .mini{font-family:inherit;font-size:12px;font-weight:600;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-soft);padding:5px 10px;border-radius:8px;cursor:pointer}
   .mini:hover{border-color:#A91F12;color:#A91F12}
   .mini.edit:hover{border-color:var(--pine);color:var(--pine)}
+  /* 🚪 ลาออก (2026-11-13) */
+  .rsg{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:#7A2E1B;background:#F7E4DE;border:1px solid #E8C2B6;padding:2px 8px;border-radius:999px;margin-top:5px}
+  .wasplate{font-size:12px;color:var(--ink-soft);margin-top:3px}
+  .xhint{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:#7A2E1B;background:#FBF0EC;border:1px dashed #E0A994;padding:5px 8px;border-radius:10px;margin-top:6px}
+  .xhint .mini{padding:3px 8px;font-size:11.5px}
+  .mdl-ft .btn.rsbtn{margin-right:auto;color:#A91F12}
+  .mini.rs{color:#A91F12;border-color:#E8C2B6}
+  .mini.rs:hover{background:#FBF0EC}
   .pwarn{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:#9A5B06;background:#FDF1DC;border:1px solid #F1D29B;padding:2px 8px;border-radius:999px;margin-top:5px}
   .pprev{font-size:12.5px;color:var(--ink-soft);margin-top:2px}
   /* 📍 พิกัดลานเท (2026-11-09) */
@@ -323,15 +331,21 @@ const cv = v => getComputedStyle(document.documentElement).getPropertyValue(v).t
 const initials = n => (n||'?').trim().charAt(0) || '?';
 const roleOf = u => ROLES[u.role] ? u.role : 'Team';
 const isActive = u => String(u.status||'').toLowerCase() === 'active';
+/* 🚪 ลาออก (2026-11-13): คนขับที่กดลาออก = ซ่อนจากรายการปกติ · ดูได้ที่ชิป "ลาออก" · ทะเบียนเดิมย้ายไป platePrev (ไม่นับซ้ำ) */
+const isResigned = u => !!u.resignedAt;
+let EXIT_HINTS = {};   // uid → วันที่ออก (ฐานพนักงาน MySSB บอกว่าออกแล้ว · ป้ายแนะนำ แอดมินกดยืนยันเอง)
+const thDate = s => { if(!s) return ''; const d = new Date(/^\d{4}-\d{2}-\d{2}$/.test(s) ? s+'T12:00:00+07:00' : s); return isNaN(d) ? s : d.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit',timeZone:'Asia/Bangkok'}); };
 
 function esc(s){ const d=document.createElement('div'); d.textContent=(s==null?'':s); return d.innerHTML; }
 
 function renderTabs(){
-  const counts = { all: USERS.length, pre: PREREGS.length };
-  ROLE_ORDER.forEach(r => counts[r] = USERS.filter(u => roleOf(u)===r).length);
+  const live = USERS.filter(u => !isResigned(u)), gone = USERS.length - live.length;
+  const counts = { all: live.length, pre: PREREGS.length, resigned: gone };
+  ROLE_ORDER.forEach(r => counts[r] = live.filter(u => roleOf(u)===r).length);
   const defs = SCOPE ? [['Driver', ROLES.Driver.label+' · '+GROUPS[SCOPE].label, ROLES.Driver.c]]
                      : [['all','ทั้งหมด',null], ...ROLE_ORDER.map(r=>[r, ROLES[r].label + (r==='Driver' && DRV_SCOPE ? ' · '+GROUPS[DRV_SCOPE].label : ''), ROLES[r].c])];
   if(PREREGS.length || filterRole==='pre') defs.push(['pre','⏳ รอผูก LINE',null]);
+  if(gone || filterRole==='resigned') defs.push(['resigned','🚪 ลาออก',null]);
   document.getElementById('tabs').innerHTML = defs.map(([k,label,col]) => `
     <button class="tab ${filterRole===k?'on':''}" onclick="setRole('${k}')">
       ${col?`<span class="pip" style="width:7px;height:7px;border-radius:50%;background:${cv(col)}"></span>`:''}
@@ -341,7 +355,7 @@ function renderTabs(){
   // แถวที่ 3: ประเภทรถ (นับเฉพาะคนขับในกลุ่มที่เลือกอยู่)
   const vt = document.getElementById('vtabs');
   if (filterRole === 'Driver') {
-    const pool = USERS.filter(u => roleOf(u) === 'Driver' && (filterGroup === 'all' || groupOf(u) === filterGroup));
+    const pool = USERS.filter(u => roleOf(u) === 'Driver' && !isResigned(u) && (filterGroup === 'all' || groupOf(u) === filterGroup));
     const none = pool.filter(u => vehOf(u) === 'ไม่ระบุ').length;
     vt.innerHTML = [['all','🚚 ทุกประเภทรถ', pool.length]].concat(VEH_ORDER.map(k => [k, k, pool.filter(u => vehOf(u) === k).length]))
       .concat(none ? [['ไม่ระบุ','ไม่ระบุ', none]] : [])
@@ -359,7 +373,7 @@ function renderTabs(){
     return;
   }
   if (filterRole !== 'Driver' || SCOPE || DRV_SCOPE) { sub.innerHTML = ''; return; }
-  const drv = USERS.filter(u => roleOf(u) === 'Driver');
+  const drv = USERS.filter(u => roleOf(u) === 'Driver' && !isResigned(u));
   sub.innerHTML = [['all','ทั้งหมด', drv.length]].concat(GROUP_ORDER.map(g => [g, GROUPS[g].label, drv.filter(u => groupOf(u) === g).length]))
     .map(([k,label,n]) => `<button class="stab ${filterGroup===k?'on':''}" onclick="setGroup('${k}')">${label}<span class="n">${n}</span></button>`).join('');
 }
@@ -423,13 +437,15 @@ function renderPre(){
 }
 
 function matches(u){
-  if(filterRole!=='all' && roleOf(u)!==filterRole) return false;
+  if(filterRole==='resigned'){ if(!isResigned(u)) return false; }
+  else if(isResigned(u)) return false;
+  else if(filterRole!=='all' && roleOf(u)!==filterRole) return false;
   if(filterRole==='Driver' && filterGroup!=='all' && groupOf(u)!==filterGroup) return false;
   if(filterRole==='Driver' && filterVeh!=='all' && vehOf(u)!==filterVeh) return false;
   if(filterRole==='Driver' && filterVeh!=='all' && filterBody!=='all' && bodyOf(u)!==filterBody) return false;
   if(filterRole==='Admin' && filterGroup!=='all' && (atypeOf(u)||'none')!==filterGroup) return false;
   if(!q) return true;
-  const hay = ((u.name||'')+' '+(u.phone||'')+' '+(u.uid||'')+' '+(u.extra||'')).toLowerCase();
+  const hay = ((u.name||'')+' '+(u.phone||'')+' '+(u.uid||'')+' '+(u.extra||'')+' '+(u.platePrev||'')).toLowerCase();
   return hay.includes(q.toLowerCase());
 }
 
@@ -437,12 +453,14 @@ function render(){
   renderTabs();
   if(filterRole==='pre') return renderPre();
   const list = USERS.filter(matches);
-  document.getElementById('count').textContent = `${list.length} / ${USERS.length} คน`;
+  const rsv = filterRole==='resigned';
+  document.getElementById('count').textContent = rsv ? `${list.length} คนลาออก` : `${list.length} / ${USERS.filter(u=>!isResigned(u)).length} คน`;
   const el = document.getElementById('list');
   if(!list.length){ el.innerHTML = `<div class="empty">ไม่พบผู้ใช้ตามเงื่อนไข</div>`; return; }
   el.innerHTML = list.map(u=>{
     const r = roleOf(u), rc = ROLES[r];
-    const active = isActive(u);
+    const active = isActive(u), gone = isResigned(u);
+    if(gone) return resignedCard(u);
     const tcol = r==='Admin' && atypeOf(u) ? ATYPES[atypeOf(u)].c : cv(rc.c);   // แอดมิน: สีตามประเภท
     return `<div class="card ${active?'':'inactive'}" data-uid="${esc(u.uid)}">
       <div class="edge" style="background:${tcol}"></div>
@@ -452,6 +470,7 @@ function render(){
         <div class="line mono">${esc(String(u.phone||'—').replace(/^'/,''))}</div>
         ${u.extra?`<div class="extra">${esc(u.extra)}</div>`:''}
         ${r==='Driver'&&plateIssue(u)?`<div class="pwarn" title="${esc(plateIssue(u))}">⚠️ ${esc(plateIssue(u))}</div>`:''}
+        ${r==='Driver'&&EXIT_HINTS[u.uid]!=null?`<div class="xhint">📋 ฐานพนักงาน MySSB: ออกจากงานแล้ว${EXIT_HINTS[u.uid]?' ('+esc(thDate(EXIT_HINTS[u.uid]))+')':''}<button class="mini rs" type="button" onclick="resignDriver('${esc(u.uid)}')">🚪 ตั้งเป็นลาออก</button></div>`:''}
         ${r==='Ramp'&&u.rampCode?rampLocLine(u):''}
         <span class="rbadge" style="background:${cv(rc.bg)};color:${cv(rc.c)}"><span class="pip" style="background:${cv(rc.c)}"></span>${rc.label}</span>${r==='Driver'?`<span class="gbadge" style="color:${GROUPS[groupOf(u)].c}">${GROUPS[groupOf(u)].label}</span>`:''}${r==='Admin'?typeBadge(u):''}
         ${r==='Owner'?`<a class="golink" href="/SSB-SMART-SUPPLY-DASHBOARD/garden.html?uid=${encodeURIComponent(u.uid)}">🌳 ดูข้อมูลสวน ›</a>`:''}
@@ -468,6 +487,27 @@ function render(){
       </div>
     </div>`;
   }).join('');
+}
+
+/* การ์ดคนขับที่ลาออก: เคยขับทะเบียนอะไร · ใครกด/เมื่อไร · ปุ่มยกเลิกลาออก (ไม่มีสวิตช์ Active) */
+function resignedCard(u){
+  const g = GROUPS[groupOf(u)], was = plateParts(u.platePrev).join(' · ');
+  return `<div class="card inactive" data-uid="${esc(u.uid)}">
+    <div class="edge" style="background:#A3A3A3"></div>
+    <div class="avatar" style="background:#A3A3A3">${esc(initials(u.name))}</div>
+    <div class="who">
+      <div class="name">${esc(u.name||'—')}${u.code?`<span class="code">${esc(u.code)}</span>`:''}</div>
+      <div class="line mono">${esc(String(u.phone||'—').replace(/^'/,''))}</div>
+      <div class="wasplate">${was?'🚚 เคยขับ '+esc(was):'ไม่มีทะเบียนเดิม'}${u.vehicleType?' · '+esc(u.vehicleType):''}</div>
+      <div class="rsg">🚪 ลาออก ${esc(thDate(u.resignedAt))}${u.resignedBy?' · โดย '+esc(u.resignedBy):''}</div>
+      <div><span class="gbadge" style="color:${g.c}">${g.label}</span></div>
+      <div class="uid mono">${esc(u.uid||'')}</div>
+    </div>
+    <div class="side">
+      <span class="status-txt i">ลาออก</span>
+      <button class="mini edit" type="button" onclick="unresignDriver('${esc(u.uid)}')">↩️ ยกเลิกลาออก</button>
+    </div>
+  </div>`;
 }
 
 function setRole(r){ filterRole = r; filterGroup = SCOPE || 'all'; filterVeh = 'all'; filterBody = 'all'; render(); }
@@ -670,7 +710,7 @@ let _plFor=null, _plMap={};
 const plateKey = s => String(s||'').replace(/[\s-]/g,'');
 function plateOwners(u){
   if(_plFor!==USERS){ _plFor=USERS; _plMap={};
-    USERS.filter(x=>x.role==='Driver').forEach(x=>plateParts(x.plate).forEach(p=>{ const k=plateKey(p); (_plMap[k]=_plMap[k]||[]).push(x); })); }
+    USERS.filter(x=>x.role==='Driver' && !isResigned(x)).forEach(x=>plateParts(x.plate).forEach(p=>{ const k=plateKey(p); (_plMap[k]=_plMap[k]||[]).push(x); })); }
   const out=[];
   plateParts(u.plate).forEach(p=>(_plMap[plateKey(p)]||[]).forEach(x=>{ if(x.uid!==u.uid && out.indexOf(x.name)<0) out.push(x.name); }));
   return out;
@@ -702,6 +742,7 @@ function openEditDriver(uid){
     <div class="full"><div class="pprev" id="ePrev"></div>${plateIssue(u)?`<div class="pwarn">⚠️ ตอนนี้: ${esc(plateIssue(u))}</div>`:''}</div>
   </div>`;
   return modal({ icon:'✏️', title:'แก้ไขคนขับ', sub:(u.code?u.code+' · ':'')+'เปลี่ยนเฉพาะข้อมูลคนขับ — ออเดอร์ที่ผ่านมาไม่เปลี่ยน', html, actions:[
+    {text:'🚪 ตั้งเป็นลาออก', val:'resign', cls:'ghost rsbtn'},
     {text:'ยกเลิก', val:null, cls:'ghost'},
     {text:'บันทึก', val:true, cls:'pri', before:(ov,btn)=>saveEditDriver(ov,btn,u)}
   ], onOpen:ov=>{
@@ -728,7 +769,50 @@ function openEditDriver(uid){
       if(VEH.indexOf(v.type)>=0) $('eVeh').value=v.type;
       $('eHead').value=ps[0]||''; $('eTail').value=ps[1]||''; sync();
     });
-  }});
+  }}).then(v=>{ if(v==='resign') resignDriver(uid); return v; });
+}
+
+/* ═════════ 🚪 ลาออก / ยกเลิกลาออก (Edge user-admin setResign · 2026-11-13) ═════════
+ * ลาออก = ทะเบียนย้ายไป "เคยขับ" (ไม่นับซ้ำ · ปุ่มรถว่างเห็นคันนั้นว่าง) + ปิดใช้งาน · ยกเลิก = ไม่คืนทะเบียน ใส่ใหม่ผ่าน ✏️ แก้ไข */
+async function resignDriver(uid){
+  const u = USERS.find(x=>x.uid===uid); if(!u) return;
+  const pl = plateParts(u.plate).join(' · ');
+  if(!(await ask({ icon:'🚪', danger:true, title:'ตั้ง '+(u.name||'คนขับ')+' เป็นลาออก?',
+      msg:(pl?'ทะเบียน '+pl+' จะย้ายไปเป็น "เคยขับ" — ไม่ขึ้นเตือนทะเบียนซ้ำ และว่างให้คนใหม่ใช้\n':'')+'ปิดการใช้งานบัญชีนี้ · ย้ายไปอยู่ชิป 🚪 ลาออก\nกดยกเลิกลาออกทีหลังได้ (ต้องใส่ทะเบียนใหม่เอง)',
+      okText:'ตั้งเป็นลาออก' }))) return;
+  return resignCall(u, true);
+}
+async function unresignDriver(uid){
+  const u = USERS.find(x=>x.uid===uid); if(!u) return;
+  if(!(await ask({ icon:'↩️', title:'ยกเลิกลาออก '+(u.name||'')+'?',
+      msg:'ย้ายกลับไปรายการคนขับปกติ (ยังปิดใช้งานอยู่)\nทะเบียนไม่คืนให้อัตโนมัติ — ใส่ใหม่ที่ ✏️ แก้ไข (ระบบตรวจทะเบียนซ้ำให้)',
+      okText:'ยกเลิกลาออก' }))) return;
+  return resignCall(u, false);
+}
+async function resignCall(u, resign){
+  let r;
+  try{
+    const res = await fetch(USER_ADMIN_URL,{ method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({ action:'setResign', userId:MY_UID, targetUid:u.uid, resign }) });
+    r = JSON.parse(await res.text());
+  }catch(e){ r = { ok:false, unsure:true }; }
+  if(r && r.ok){ toast(r.unchanged ? 'ไม่มีอะไรเปลี่ยน' : (resign ? '🚪 '+u.name+' → ลาออก' : '↩️ '+u.name+' กลับเป็นคนขับปกติ')); delete EXIT_HINTS[u.uid]; reloadQuiet(); return; }
+  if(r && r.unsure){ toast('ไม่แน่ใจว่าบันทึกสำเร็จ — กำลังโหลดรายชื่อมาตรวจ', true); reloadQuiet(); return; }
+  toast((r && r.error) || 'บันทึกไม่สำเร็จ', true);
+}
+/* ป้ายแนะนำจากฐานพนักงาน MySSB — ถามครั้งเดียวต่อการเปิดหน้า · พลาด = ไม่มีป้าย (หน้าใช้ได้ปกติ) */
+let _hintsAsked = false;
+async function loadExitHints(){
+  if(_hintsAsked || !USERS.some(u=>u.role==='Driver' && !isResigned(u))) return;
+  _hintsAsked = true;
+  try{
+    const res = await fetch(USER_ADMIN_URL,{ method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify({ action:'exitHints', userId:MY_UID }) });
+    const r = JSON.parse(await res.text());
+    if(!r || !r.ok){ console.warn('ป้าย MySSB:', r && r.error); return; }
+    const m = {}; (r.hints||[]).forEach(h=>{ m[h.uid] = h.exitDate||''; });
+    EXIT_HINTS = m;
+    if(Object.keys(m).length) render();
+  }catch(e){ console.warn('ป้าย MySSB โหลดไม่ได้', e); }
 }
 async function saveEditDriver(ov, btn, u){
   const $=id=>ov.querySelector('#'+id);
@@ -1086,6 +1170,7 @@ async function loadUsers(){
   hideGate();
   showDevTools();
   render();
+  loadExitHints();   // 🚪 ป้ายแนะนำจาก MySSB (ไม่รอ)
 }
 
 async function bootstrap(){
