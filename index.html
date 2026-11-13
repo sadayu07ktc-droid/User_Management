@@ -142,9 +142,14 @@
   /* 🚪 ลาออก (2026-11-13) */
   .rsg{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:#7A2E1B;background:#F7E4DE;border:1px solid #E8C2B6;padding:2px 8px;border-radius:999px;margin-top:5px}
   .wasplate{font-size:12px;color:var(--ink-soft);margin-top:3px}
+  .rsg,.myssb{border-radius:10px;max-width:100%}
+  .card .who{min-width:0}
+  @media(max-width:480px){ .mini.unrs{max-width:76px;white-space:normal;line-height:1.3;text-align:center} }
   .xhint{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:#7A2E1B;background:#FBF0EC;border:1px dashed #E0A994;padding:5px 8px;border-radius:10px;margin-top:6px}
   .xhint .mini{padding:3px 8px;font-size:11.5px}
   .mdl-ft .btn.rsbtn{margin-right:auto;color:#A91F12}
+  .myssb{display:inline-block;font-size:11.5px;font-weight:600;color:#1F5A3A;background:#EAF5EE;border:1px solid #BFE0CB;padding:3px 9px;border-radius:10px;margin-top:5px;max-width:100%}
+  .myssb.none{color:#6B6B6B;background:#F2F2F0;border-color:#DDDDD8}
   .mini.rs{color:#A91F12;border-color:#E8C2B6}
   .mini.rs:hover{background:#FBF0EC}
   .pwarn{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:#9A5B06;background:#FDF1DC;border:1px solid #F1D29B;padding:2px 8px;border-radius:999px;margin-top:5px}
@@ -334,6 +339,8 @@ const isActive = u => String(u.status||'').toLowerCase() === 'active';
 /* 🚪 ลาออก (2026-11-13): คนขับที่กดลาออก = ซ่อนจากรายการปกติ · ดูได้ที่ชิป "ลาออก" · ทะเบียนเดิมย้ายไป platePrev (ไม่นับซ้ำ) */
 const isResigned = u => !!u.resignedAt;
 let EXIT_HINTS = {};   // uid → วันที่ออก (ฐานพนักงาน MySSB บอกว่าออกแล้ว · ป้ายแนะนำ แอดมินกดยืนยันเอง)
+let HINTS_OK = false;  // ถาม MySSB สำเร็จแล้ว (ไม่มีใน EXIT_HINTS = "ไม่มีบันทึกออก" จริง ไม่ใช่โหลดไม่ได้)
+let IS_DEV = false;    // DEV (ADMIN_PERM_EDITORS) — ตั้งลาออกคนที่ไม่มีบันทึกใน MySSB ได้ (+PIN) · 13 พ.ย.
 const thDate = s => { if(!s) return ''; const d = new Date(/^\d{4}-\d{2}-\d{2}$/.test(s) ? s+'T12:00:00+07:00' : s); return isNaN(d) ? s : d.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit',timeZone:'Asia/Bangkok'}); };
 
 function esc(s){ const d=document.createElement('div'); d.textContent=(s==null?'':s); return d.innerHTML; }
@@ -484,6 +491,7 @@ function render(){
         </button>
         ${r==='Driver'?`<button class="mini edit" type="button" onclick="openEditDriver('${esc(u.uid)}')">✏️ แก้ไข</button>`:''}
         ${r==='Ramp'&&u.rampCode?`<button class="mini edit" type="button" onclick="openRampLoc('${esc(u.uid)}')">📍 แก้พิกัด</button>`:''}
+        ${r==='Driver'&&IS_DEV&&EXIT_HINTS[u.uid]==null?`<button class="mini rs" type="button" onclick="resignDriver('${esc(u.uid)}')" title="เฉพาะ DEV · ใส่ PIN">🚪 ลาออก</button>`:''}
       </div>
     </div>`;
   }).join('');
@@ -500,12 +508,14 @@ function resignedCard(u){
       <div class="line mono">${esc(String(u.phone||'—').replace(/^'/,''))}</div>
       <div class="wasplate">${was?'🚚 เคยขับ '+esc(was):'ไม่มีทะเบียนเดิม'}${u.vehicleType?' · '+esc(u.vehicleType):''}</div>
       <div class="rsg">🚪 ลาออก ${esc(thDate(u.resignedAt))}${u.resignedBy?' · โดย '+esc(u.resignedBy):''}</div>
+      ${EXIT_HINTS[u.uid]!=null?`<div class="myssb" title="ฐานพนักงาน MySSB บันทึกว่าออกจากงานแล้ว">📋 MySSB: ออกจากงาน${EXIT_HINTS[u.uid]?' '+esc(thDate(EXIT_HINTS[u.uid])):'แล้ว'}</div>`
+        :HINTS_OK?`<div class="myssb none" title="ฐานพนักงาน MySSB ไม่มีบันทึกออก เช่น พนักงานชั่วคราว — DEV ยืนยันเอง">📋 MySSB: ไม่มีบันทึกออก · DEV ยืนยัน</div>`:''}
       <div><span class="gbadge" style="color:${g.c}">${g.label}</span></div>
       <div class="uid mono">${esc(u.uid||'')}</div>
     </div>
     <div class="side">
       <span class="status-txt i">ลาออก</span>
-      <button class="mini edit" type="button" onclick="unresignDriver('${esc(u.uid)}')">↩️ ยกเลิกลาออก</button>
+      <button class="mini edit unrs" type="button" onclick="unresignDriver('${esc(u.uid)}')">↩️ ยกเลิกลาออก</button>
     </div>
   </div>`;
 }
@@ -741,8 +751,9 @@ function openEditDriver(uid){
     <label class="full nop"><input type="checkbox" id="eNoPlate" ${parts.length?'':'checked'}> ยังไม่มีรถ / ปล่อยรถให้คนอื่น</label>
     <div class="full"><div class="pprev" id="ePrev"></div>${plateIssue(u)?`<div class="pwarn">⚠️ ตอนนี้: ${esc(plateIssue(u))}</div>`:''}</div>
   </div>`;
+  const canResign = EXIT_HINTS[uid]!=null || IS_DEV;   // ไม่มีบันทึกออกใน MySSB = เฉพาะ DEV
   return modal({ icon:'✏️', title:'แก้ไขคนขับ', sub:(u.code?u.code+' · ':'')+'เปลี่ยนเฉพาะข้อมูลคนขับ — ออเดอร์ที่ผ่านมาไม่เปลี่ยน', html, actions:[
-    {text:'🚪 ตั้งเป็นลาออก', val:'resign', cls:'ghost rsbtn'},
+    ...(canResign?[{text:'🚪 ตั้งเป็นลาออก', val:'resign', cls:'ghost rsbtn'}]:[]),
     {text:'ยกเลิก', val:null, cls:'ghost'},
     {text:'บันทึก', val:true, cls:'pri', before:(ov,btn)=>saveEditDriver(ov,btn,u)}
   ], onOpen:ov=>{
@@ -776,10 +787,13 @@ function openEditDriver(uid){
  * ลาออก = ทะเบียนย้ายไป "เคยขับ" (ไม่นับซ้ำ · ปุ่มรถว่างเห็นคันนั้นว่าง) + ปิดใช้งาน · ยกเลิก = ไม่คืนทะเบียน ใส่ใหม่ผ่าน ✏️ แก้ไข */
 async function resignDriver(uid){
   const u = USERS.find(x=>x.uid===uid); if(!u) return;
-  const pl = plateParts(u.plate).join(' · ');
+  const pl = plateParts(u.plate).join(' · '), noRec = EXIT_HINTS[uid]==null;
+  if(noRec && !IS_DEV){ toast('ไม่พบบันทึกออกใน MySSB — ให้ DEV เป็นคนกดลาออก', true); return; }
   if(!(await ask({ icon:'🚪', danger:true, title:'ตั้ง '+(u.name||'คนขับ')+' เป็นลาออก?',
-      msg:(pl?'ทะเบียน '+pl+' จะย้ายไปเป็น "เคยขับ" — ไม่ขึ้นเตือนทะเบียนซ้ำ และว่างให้คนใหม่ใช้\n':'')+'ปิดการใช้งานบัญชีนี้ · ย้ายไปอยู่ชิป 🚪 ลาออก\nกดยกเลิกลาออกทีหลังได้ (ต้องใส่ทะเบียนใหม่เอง)',
-      okText:'ตั้งเป็นลาออก' }))) return;
+      msg:(noRec?'⚠️ ฐานพนักงาน MySSB ไม่มีบันทึกออก (เช่น พนักงานชั่วคราว) — DEV ยืนยันด้วย PIN\n':'📋 MySSB: ออกจากงาน'+(EXIT_HINTS[uid]?' '+thDate(EXIT_HINTS[uid]):'แล้ว')+'\n')
+        +(pl?'ทะเบียน '+pl+' จะย้ายไปเป็น "เคยขับ" — ไม่ขึ้นเตือนทะเบียนซ้ำ และว่างให้คนใหม่ใช้\n':'')+'ปิดการใช้งานบัญชีนี้ · ย้ายไปอยู่ชิป 🚪 ลาออก\nกดยกเลิกลาออกทีหลังได้ (ต้องใส่ทะเบียนใหม่เอง)',
+      okText:noRec?'ใส่ PIN แล้วตั้งลาออก':'ตั้งเป็นลาออก' }))) return;
+  if(noRec && !(window.ssbPinGate && await ssbPinGate(MY_UID, { action:true, text:'ตั้งคนขับเป็นลาออก' }))) return;
   return resignCall(u, true);
 }
 async function unresignDriver(uid){
@@ -796,22 +810,22 @@ async function resignCall(u, resign){
       body:JSON.stringify({ action:'setResign', userId:MY_UID, targetUid:u.uid, resign }) });
     r = JSON.parse(await res.text());
   }catch(e){ r = { ok:false, unsure:true }; }
-  if(r && r.ok){ toast(r.unchanged ? 'ไม่มีอะไรเปลี่ยน' : (resign ? '🚪 '+u.name+' → ลาออก' : '↩️ '+u.name+' กลับเป็นคนขับปกติ')); delete EXIT_HINTS[u.uid]; reloadQuiet(); return; }
+  if(r && r.ok){ toast(r.unchanged ? 'ไม่มีอะไรเปลี่ยน' : (resign ? '🚪 '+u.name+' → ลาออก' : '↩️ '+u.name+' กลับเป็นคนขับปกติ')); reloadQuiet(); return; }
   if(r && r.unsure){ toast('ไม่แน่ใจว่าบันทึกสำเร็จ — กำลังโหลดรายชื่อมาตรวจ', true); reloadQuiet(); return; }
   toast((r && r.error) || 'บันทึกไม่สำเร็จ', true);
 }
 /* ป้ายแนะนำจากฐานพนักงาน MySSB — ถามครั้งเดียวต่อการเปิดหน้า · พลาด = ไม่มีป้าย (หน้าใช้ได้ปกติ) */
 let _hintsAsked = false;
 async function loadExitHints(){
-  if(_hintsAsked || !USERS.some(u=>u.role==='Driver' && !isResigned(u))) return;
+  if(_hintsAsked || !USERS.some(u=>u.role==='Driver')) return;
   _hintsAsked = true;
   try{
     const res = await fetch(USER_ADMIN_URL,{ method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify({ action:'exitHints', userId:MY_UID }) });
     const r = JSON.parse(await res.text());
     if(!r || !r.ok){ console.warn('ป้าย MySSB:', r && r.error); return; }
     const m = {}; (r.hints||[]).forEach(h=>{ m[h.uid] = h.exitDate||''; });
-    EXIT_HINTS = m;
-    if(Object.keys(m).length) render();
+    EXIT_HINTS = m; HINTS_OK = true;
+    render();
   }catch(e){ console.warn('ป้าย MySSB โหลดไม่ได้', e); }
 }
 async function saveEditDriver(ov, btn, u){
@@ -939,6 +953,7 @@ async function pinOk(){ return window.ssbPinGate ? ssbPinGate(MY_UID, { action:t
 async function showDevTools(){
   let dev = false;
   try { const i = window.ssbPinInfo ? await ssbPinInfo(MY_UID) : null; dev = !!(i && i.ok && i.canEdit); } catch(e) {}
+  if(dev !== IS_DEV){ IS_DEV = dev; render(); }   // ปุ่ม 🚪 ลาออก บนการ์ด (DEV)
   document.getElementById('dlWrap').hidden = !dev;
   document.getElementById('impBtn').hidden = !dev || !!SCOPE;
 }
