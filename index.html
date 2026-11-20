@@ -150,6 +150,10 @@
   .mdl-ft .btn.rsbtn{margin-right:auto;color:#A91F12}
   .myssb{display:inline-block;font-size:11.5px;font-weight:600;color:#1F5A3A;background:#EAF5EE;border:1px solid #BFE0CB;padding:3px 9px;border-radius:10px;margin-top:5px;max-width:100%}
   .myssb.none{color:#6B6B6B;background:#F2F2F0;border-color:#DDDDD8}
+  .card{flex-wrap:wrap}   /* .who = flex:1 (basis 0) → แถวบนไม่ตัดบรรทัด มีแค่ .acts ที่ลงแถวใหม่ */
+  .card > .acts{flex-basis:100%;display:flex;flex-wrap:wrap;gap:8px;margin-left:57px;padding-top:10px;border-top:1px dashed var(--line)}
+  .card > .acts .mini{padding:6px 12px}
+  @media(max-width:420px){.card > .acts{margin-left:0}}
   .mini.rs{color:#A91F12;border-color:#E8C2B6}
   .mini.rs:hover{background:#FBF0EC}
   .pwarn{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:#9A5B06;background:#FDF1DC;border:1px solid #F1D29B;padding:2px 8px;border-radius:999px;margin-top:5px}
@@ -498,13 +502,21 @@ function render(){
         <button class="toggle ${active?'on':''}" data-role="toggle" onclick="toggleUser(this,'${esc(u.uid)}')" aria-label="สลับสถานะ">
           <span class="knob"></span>
         </button>
-        ${r==='Driver'?`<button class="mini edit" type="button" onclick="openEditDriver('${esc(u.uid)}')">✏️ แก้ไข</button>`:''}
-        ${r==='Ramp'&&u.rampCode?`<button class="mini edit" type="button" onclick="openRampLoc('${esc(u.uid)}')">📍 แก้พิกัด</button>`:''}
-        ${r==='Driver'&&IS_DEV?`<button class="mini edit" type="button" onclick="openTransfer('${esc(u.uid)}')" title="เฉพาะ DEV · ใส่ PIN">🔀 โอนแผนก</button>`:''}
-        ${r==='Driver'&&IS_DEV&&EXIT_HINTS[u.uid]==null?`<button class="mini rs" type="button" onclick="resignDriver('${esc(u.uid)}')" title="เฉพาะ DEV · ใส่ PIN">🚪 ลาออก</button>`:''}
       </div>
+      ${cardActs(u, r)}
     </div>`;
   }).join('');
+}
+
+/* ปุ่มของการ์ด (แก้ไข / แก้พิกัด / โอนแผนก / ลาออก) — แถวแนวนอนใต้ข้อมูล · 20 พ.ย. */
+function cardActs(u, r){
+  const b = [
+    r==='Driver' ? `<button class="mini edit" type="button" onclick="openEditDriver('${esc(u.uid)}')">✏️ แก้ไข</button>` : '',
+    r==='Ramp'&&u.rampCode ? `<button class="mini edit" type="button" onclick="openRampLoc('${esc(u.uid)}')">📍 แก้พิกัด</button>` : '',
+    r==='Driver'&&IS_DEV ? `<button class="mini edit" type="button" onclick="openTransfer('${esc(u.uid)}')" title="เฉพาะ DEV · ใส่ PIN">🔀 โอนแผนก</button>` : '',
+    r==='Driver'&&IS_DEV&&EXIT_HINTS[u.uid]==null ? `<button class="mini rs" type="button" onclick="resignDriver('${esc(u.uid)}')" title="เฉพาะ DEV · ใส่ PIN">🚪 ลาออก</button>` : ''
+  ].join('');
+  return b ? `<div class="acts">${b}</div>` : '';
 }
 
 /* การ์ดคนขับที่ลาออก: เคยขับทะเบียนอะไร · ใครกด/เมื่อไร · ปุ่มยกเลิกลาออก (ไม่มีสวิตช์ Active) */
