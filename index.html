@@ -164,6 +164,14 @@
   .nop{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);cursor:pointer}
   .nop input{width:16px;height:16px;accent-color:var(--pine)}
   .vac-t{font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:6px}
+  /* 🔀 โอนข้ามแผนก (2026-11-20) */
+  .trf{display:block;font-size:11.5px;font-weight:600;color:#1E4E79;background:#E8F1FA;border:1px solid #BCD6EE;padding:3px 9px;border-radius:10px;margin-top:5px;max-width:100%}
+  .trf small{font-weight:400;color:#4A6A88}
+  .trg{display:flex;flex-wrap:wrap;gap:8px}
+  .trg label{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;border:1.5px solid var(--line-strong);border-radius:10px;padding:8px 14px;cursor:pointer;background:var(--surface-2)}
+  .trg input{accent-color:var(--pine)}
+  .trg label:has(input:checked){border-color:var(--pine);background:#EAF5EE}
+  .vac.on{border-color:var(--pine);color:var(--pine);background:#EAF5EE}
   .vac-l{display:flex;flex-wrap:wrap;gap:6px;max-height:132px;overflow-y:auto}
   .vac{font-family:inherit;font-size:12.5px;font-weight:600;color:var(--ink);background:var(--surface-2);border:1px solid var(--line-strong);border-radius:8px;padding:5px 10px;cursor:pointer;display:inline-flex;align-items:baseline;gap:6px}
   .vac:hover{border-color:var(--pine);color:var(--pine)}
@@ -452,7 +460,7 @@ function matches(u){
   if(filterRole==='Driver' && filterVeh!=='all' && filterBody!=='all' && bodyOf(u)!==filterBody) return false;
   if(filterRole==='Admin' && filterGroup!=='all' && (atypeOf(u)||'none')!==filterGroup) return false;
   if(!q) return true;
-  const hay = ((u.name||'')+' '+(u.phone||'')+' '+(u.uid||'')+' '+(u.extra||'')+' '+(u.platePrev||'')).toLowerCase();
+  const hay = ((u.name||'')+' '+(u.phone||'')+' '+(u.uid||'')+' '+(u.extra||'')+' '+(u.platePrev||'')+' '+(u.code||'')+' '+(u.transfers||[]).map(t=>t.oldCode).join(' ')).toLowerCase();   // ค้นด้วยรหัสเดิมก่อนโอนได้
   return hay.includes(q.toLowerCase());
 }
 
@@ -476,6 +484,7 @@ function render(){
         <div class="name">${esc(u.name||'—')}${u.code?`<span class="code">${esc(u.code)}</span>`:''}</div>
         <div class="line mono">${esc(String(u.phone||'—').replace(/^'/,''))}</div>
         ${u.extra?`<div class="extra">${esc(u.extra)}</div>`:''}
+        ${r==='Driver'?trfLine(u):''}
         ${r==='Driver'&&plateIssue(u)?`<div class="pwarn" title="${esc(plateIssue(u))}">⚠️ ${esc(plateIssue(u))}</div>`:''}
         ${r==='Driver'&&EXIT_HINTS[u.uid]!=null?`<div class="xhint">📋 ฐานพนักงาน MySSB: ออกจากงานแล้ว${EXIT_HINTS[u.uid]?' ('+esc(thDate(EXIT_HINTS[u.uid]))+')':''}<button class="mini rs" type="button" onclick="resignDriver('${esc(u.uid)}')">🚪 ตั้งเป็นลาออก</button></div>`:''}
         ${r==='Ramp'&&u.rampCode?rampLocLine(u):''}
@@ -491,6 +500,7 @@ function render(){
         </button>
         ${r==='Driver'?`<button class="mini edit" type="button" onclick="openEditDriver('${esc(u.uid)}')">✏️ แก้ไข</button>`:''}
         ${r==='Ramp'&&u.rampCode?`<button class="mini edit" type="button" onclick="openRampLoc('${esc(u.uid)}')">📍 แก้พิกัด</button>`:''}
+        ${r==='Driver'&&IS_DEV?`<button class="mini edit" type="button" onclick="openTransfer('${esc(u.uid)}')" title="เฉพาะ DEV · ใส่ PIN">🔀 โอนแผนก</button>`:''}
         ${r==='Driver'&&IS_DEV&&EXIT_HINTS[u.uid]==null?`<button class="mini rs" type="button" onclick="resignDriver('${esc(u.uid)}')" title="เฉพาะ DEV · ใส่ PIN">🚪 ลาออก</button>`:''}
       </div>
     </div>`;
@@ -508,6 +518,7 @@ function resignedCard(u){
       <div class="line mono">${esc(String(u.phone||'—').replace(/^'/,''))}</div>
       <div class="wasplate">${was?'🚚 เคยขับ '+esc(was):'ไม่มีทะเบียนเดิม'}${u.vehicleType?' · '+esc(u.vehicleType):''}</div>
       <div class="rsg">🚪 ลาออก ${esc(thDate(u.resignedAt))}${u.resignedBy?' · โดย '+esc(u.resignedBy):''}</div>
+      ${trfLine(u)}
       ${EXIT_HINTS[u.uid]!=null?`<div class="myssb" title="ฐานพนักงาน MySSB บันทึกว่าออกจากงานแล้ว">📋 MySSB: ออกจากงาน${EXIT_HINTS[u.uid]?' '+esc(thDate(EXIT_HINTS[u.uid])):'แล้ว'}</div>`
         :HINTS_OK?`<div class="myssb none" title="ฐานพนักงาน MySSB ไม่มีบันทึกออก เช่น พนักงานชั่วคราว — DEV ยืนยันเอง">📋 MySSB: ไม่มีบันทึกออก · DEV ยืนยัน</div>`:''}
       <div><span class="gbadge" style="color:${g.c}">${g.label}</span></div>
@@ -726,16 +737,16 @@ function plateOwners(u){
   return out;
 }
 /* ปุ่มรถว่าง (เฉพาะกลุ่ม Packing): ถามเซิร์ฟเวอร์ทุกครั้งที่เปิดฟอร์ม กดแล้วเติมทะเบียน+ประเภทรถ */
-async function loadVacant(box, group, onPick){
-  if(group!=='Packing'){ box.hidden=true; box.innerHTML=''; return; }
+async function loadVacant(box, group, onPick, anyGroup){   // anyGroup = ฟอร์มโอนแผนก (ทุกกลุ่ม · 20 พ.ย.)
+  if(group!=='Packing' && !anyGroup){ box.hidden=true; box.innerHTML=''; return; }
   box.hidden=false; box.innerHTML='<div class="vac-t">กำลังโหลดรถว่าง…</div>';
   let r=null;
   try{ const res=await fetch(USER_ADMIN_URL,{ method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify({ action:'vacantVehicles', userId:MY_UID, group }) }); r=JSON.parse(await res.text()); }catch(e){}
   if(!box.isConnected) return;
   if(!r||!r.ok){ box.innerHTML='<div class="vac-t">โหลดรายการรถว่างไม่ได้ — กรอกทะเบียนเองได้</div>'; return; }
   const list=r.vacant||[];
-  if(!list.length){ box.innerHTML='<div class="vac-t">รถ Packing มีคนขับครบทุกคันแล้ว</div>'; return; }
-  box.innerHTML='<div class="vac-t">รถว่าง Packing (ยังไม่มีคนขับ) · กดเพื่อเลือก</div><div class="vac-l">'
+  if(!list.length){ box.innerHTML='<div class="vac-t">รถ '+esc(group)+' มีคนขับครบทุกคันแล้ว</div>'; return; }
+  box.innerHTML='<div class="vac-t">รถว่าง '+esc(group)+' (ยังไม่มีคนขับ) · กดเพื่อเลือก</div><div class="vac-l">'
     +list.map((v,i)=>`<button type="button" class="vac" data-i="${i}">${esc(v.plate.replace(/\s*,\s*/,' + '))}<small>${esc(v.type||'')}</small></button>`).join('')+'</div>';
   box.querySelectorAll('.vac').forEach(b=>b.addEventListener('click',()=>onPick(list[+b.dataset.i])));
 }
@@ -782,6 +793,64 @@ function openEditDriver(uid){
     });
   }}).then(v=>{ if(v==='resign') resignDriver(uid); return v; });
 }
+
+/* ═════════ 🔀 โอนคนขับข้ามแผนก (Edge user-admin transferDriver · คุณน้อง 20 พ.ย. 69) ═════════
+ * เฉพาะ DEV + PIN · ไม่ส่ง LINE · ได้รหัสใหม่ตามแผนก (DV- / DVB- / DVP-) · ประวัติเก่าอยู่ที่รหัสเดิม → ป้าย 🔀 บนการ์ดบอกว่ามาจากไหน
+ * มีงานค้าง (ติดงาน / ออเดอร์ยังไม่เสร็จ) = โอนไม่ได้ · ทะเบียนเลือกจากรถว่างของแผนกใหม่ (เว้นว่างได้) */
+function trfLine(u){
+  const t = u.transfers||[]; if(!t.length) return '';
+  const one = x => (x.oldCode||'?')+' ('+x.from+') → '+(x.newCode||'?')+' ('+x.to+')';
+  const tip = t.map(x=>thDate(x.at)+': '+one(x)+(x.oldPlate||x.newPlate?' · ทะเบียน '+(x.oldPlate||'-')+' → '+(x.newPlate||'-'):'')+(x.by?' · โดย '+x.by:'')).join('\n');
+  const x = t[0];
+  return `<div class="trf" title="${esc(tip)}">🔀 โอนจาก ${esc(GROUPS[x.from]?GROUPS[x.from].label:x.from)} · รหัสเดิม <b>${esc(x.oldCode||'-')}</b>${x.oldPlate?' · เคยขับ '+esc(plateParts(x.oldPlate).join(' + ')):''}`
+    +`<br><small>${esc(thDate(x.at))}${x.by?' · โดย '+esc(x.by):''}${t.length>1?' · โอนมาแล้ว '+t.length+' ครั้ง (ชี้ดูทั้งหมด)':''}</small></div>`;
+}
+async function openTransfer(uid){
+  if(!IS_DEV){ toast('โอนแผนกได้เฉพาะ DEV', true); return; }
+  const u = USERS.find(x=>x.uid===uid); if(!u) return;
+  const from = groupOf(u), tos = GROUP_ORDER.filter(g=>g!==from);
+  const curPl = plateParts(u.plate).join(' + ');
+  let pick = null;   // { plate, type } รถว่างที่เลือก
+  const html = `<div class="fg">
+    <div class="fd full"><label>ย้ายไปแผนก<span class="req">* จำเป็น</span></label>
+      <div class="trg">${tos.map((g,i)=>`<label><input type="radio" name="tTo" value="${esc(g)}" ${i?'':'checked'}> ${esc(GROUPS[g].label)}</label>`).join('')}</div></div>
+    <div class="full" id="tVac"></div>
+    <div class="full"><div class="pprev" id="tPrev"></div></div>
+    <div class="full"><div class="msg" style="font-size:12.5px;color:var(--ink-soft);line-height:1.6">• ได้<b>รหัสคนขับใหม่</b>ตามแผนก — ประวัติเก่า (ใบชั่ง/ค่าแรง/GPS) ยังอยู่ที่รหัสเดิม <b>${esc(u.code||'-')}</b> และการ์ดจะขึ้นป้าย 🔀 บอกว่ามาจากไหน<br>`
+      +`• ทะเบียนเดิม${curPl?' <b>'+esc(curPl)+'</b>':''} คืนให้แผนก ${esc(GROUPS[from].label)} · ไม่เลือกรถใหม่ = ยังไม่มีรถประจำ<br>• ยังมีงานค้าง = โอนไม่ได้ · ไม่ส่ง LINE หาคนขับ</div></div>
+  </div>`;
+  const v = await modal({ icon:'🔀', title:'โอน '+(u.name||'คนขับ')+' ข้ามแผนก', sub:(u.code||'')+' · ตอนนี้อยู่ '+GROUPS[from].label, html, actions:[
+    {text:'ยกเลิก', val:null, cls:'ghost'},
+    {text:'ใส่ PIN แล้วโอน', val:'go', cls:'pri', before:ov=>{ _trfLast = ov._tGet(); if(!_trfLast.to){ toast('เลือกแผนกปลายทาง', true); return false; } }}
+  ], onOpen:ov=>{
+    const $=id=>ov.querySelector('#'+id);
+    const toOf=()=>{ const c=ov.querySelector('input[name=tTo]:checked'); return c?c.value:''; };
+    const prev=()=>{ const g=toOf(), pre=(GROUP_ORDER.indexOf(g)===1?'DVB':GROUP_ORDER.indexOf(g)===2?'DVP':'DV');
+      $('tPrev').innerHTML='จะโอนเป็น: <b>'+esc(GROUPS[g].label)+'</b> · รหัสใหม่ <b>'+pre+'-xxxx</b> · '+(pick?'รถ <b>'+esc(plateParts(pick.plate).join(' + '))+'</b>'+(pick.type?' ('+esc(pick.type)+')':''):'ยังไม่มีรถประจำ'); };
+    const vac=()=>{ pick=null; prev(); loadVacant($('tVac'), toOf(), x=>{
+        pick = (pick && pick.plate===x.plate) ? null : x;   // กดซ้ำ = ยกเลิกเลือก
+        $('tVac').querySelectorAll('.vac').forEach(b=>b.classList.toggle('on', !!pick && b.textContent.indexOf(pick.plate.replace(/\s*,\s*/,' + '))===0));
+        prev(); }, true); };
+    ov.querySelectorAll('input[name=tTo]').forEach(r=>r.addEventListener('change',vac));
+    vac();
+    ov._tGet = ()=>({ to:toOf(), plate: pick?pick.plate:'' });
+  }});
+  const sel = _trfLast; _trfLast = null;   // ค่าที่เลือก ณ ตอนกดปุ่ม (popup ปิดแล้ว)
+  if(v!=='go') return;
+  if(!sel || !sel.to) return;
+  if(!(window.ssbPinGate && await ssbPinGate(MY_UID, { action:true, text:'โอน '+(u.name||'คนขับ')+' ไปแผนก '+sel.to }))) return;
+  let r;
+  try{
+    const res = await fetch(USER_ADMIN_URL,{ method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({ action:'transferDriver', userId:MY_UID, targetUid:u.uid, toGroup:sel.to, plate:sel.plate }) });
+    r = JSON.parse(await res.text());
+  }catch(e){ r = { ok:false, unsure:true }; }
+  if(r && r.ok){ toast('🔀 '+r.name+' → '+r.toGroup+' · รหัสใหม่ '+r.newCode+' (เดิม '+r.oldCode+')'); reloadQuiet(); return; }
+  if(r && r.unsure){ toast('ไม่แน่ใจว่าโอนสำเร็จ — กำลังโหลดรายชื่อมาตรวจ', true); reloadQuiet(); return; }
+  if(r && r.busy){ await ask({ icon:'⏳', title:'ยังโอนไม่ได้', msg:r.error||'มีงานค้าง', okText:'รับทราบ', cancelText:'ปิด' }); return; }
+  toast((r && r.error) || 'โอนไม่สำเร็จ', true);
+}
+let _trfLast = null;
 
 /* ═════════ 🚪 ลาออก / ยกเลิกลาออก (Edge user-admin setResign · 2026-11-13) ═════════
  * ลาออก = ทะเบียนย้ายไป "เคยขับ" (ไม่นับซ้ำ · ปุ่มรถว่างเห็นคันนั้นว่าง) + ปิดใช้งาน · ยกเลิก = ไม่คืนทะเบียน ใส่ใหม่ผ่าน ✏️ แก้ไข */
