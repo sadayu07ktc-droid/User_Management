@@ -329,6 +329,7 @@ const GROUP_ORDER = ['ไร่','Bulk','Packing'];
 const groupOf = u => GROUPS[u.jobGroup] ? u.jobGroup : (/^DVB-/.test(u.code||'') ? 'Bulk' : /^DVP-/.test(u.code||'') ? 'Packing' : 'ไร่');
 /* ประเภทแอดมิน (ตาราง admins · สีเดียวกับหน้าตั้งค่าสิทธิ์ admins.html) · ไร่=ADMIN · ผู้จัดการ/ผู้บริหาร = ทุกแผนก · 2026-10-08 */
 const ATYPES = {
+  DEV:        { label:'🛠️ DEV',               c:'#B42318' },   // 27 พ.ย. ชนิด DEV (ตั้งจากหลังบ้านเท่านั้น)
   ADMIN:      { label:'🌴 ไร่',                c:'#4F46E5' },
   ADMIN_BULK: { label:'🏭 Bulk',               c:'#C2410C' },
   ADMIN_PK:   { label:'📦 Packing',            c:'#0E7490' },
@@ -337,7 +338,7 @@ const ATYPES = {
   ACC_BULK:   { label:'🧾 บัญชี Bulk', c:'#6D28D9' },
   YARD_BULK:  { label:'🏭 แอดมินพันตัน', c:'#7C5A12' },
 };
-const ATYPE_ORDER = ['ADMIN','ADMIN_BULK','ADMIN_PK','MANAGER','EXECUTIVE','ACC_BULK','YARD_BULK'];
+const ATYPE_ORDER = ['DEV','ADMIN','ADMIN_BULK','ADMIN_PK','MANAGER','EXECUTIVE','ACC_BULK','YARD_BULK'];
 const atypeOf = u => ATYPES[u.adminType] ? u.adminType : '';
 const typeBadge = u => { const k = atypeOf(u); return k ? `<span class="gbadge" style="color:${ATYPES[k].c}">${ATYPES[k].label}<span class="tc">${k}</span></span>` : ''; };
 let DRV_SCOPE = '';   // 'ไร่' = แอดมินรถไร่ เห็นคนขับเฉพาะกลุ่มไร่ (บทบาทอื่นเห็นปกติ · server กรองให้แล้ว) 2026-10-21
